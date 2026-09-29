@@ -1,10 +1,11 @@
 from fastapi import FastAPI
 from sqlalchemy import text
 
+from app.core.config import settings
 from app.core.database import engine
 
 app = FastAPI(
-    title="AI Document Assistant API",
+    title=f"{settings.app_name} API",
     version="0.1.0",
     description="Backend API for an AI-powered document assistant using RAG.",
 )
