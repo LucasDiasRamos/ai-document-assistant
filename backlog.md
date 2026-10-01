@@ -76,7 +76,7 @@ The API starts locally and both application and database health can be verified.
 
 ## API-01 — Configuration hardening
 
-**Status:** In progress
+**Status:** Done
 
 ### What
 
@@ -103,7 +103,7 @@ Changing a supported environment variable changes application behavior without e
 
 ## API-02 — Alembic setup and pgvector migration
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** API-00
 
@@ -136,7 +136,7 @@ A fresh PostgreSQL database can be brought to the expected schema state with one
 
 ## API-03 — Document model
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** API-02
 
@@ -183,7 +183,7 @@ The backend can create, read, update processing status, and delete document meta
 
 ## API-04 — DocumentChunk model with pgvector
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** API-02, API-03
 
@@ -208,7 +208,7 @@ Requirements:
 - foreign key to `Document`;
 - cascade deletion;
 - pgvector `Vector` column;
-- embedding dimension configured in one authoritative place;
+- embedding dimension treated as schema-owned and changed only through a migration plus matching ORM update;
 - index strategy added when retrieval implementation is ready.
 
 ### Expected result
@@ -227,7 +227,7 @@ A document can own multiple chunks with content, page traceability, and embeddin
 
 ## API-05 — Document schemas
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** API-03
 
@@ -444,7 +444,7 @@ Configuration should define:
 
 - provider;
 - model;
-- vector dimension;
+- embedding model compatibility with the schema-owned vector dimension;
 - API key.
 
 Validate that provider dimension matches the pgvector schema.
@@ -458,7 +458,7 @@ The ingestion and query pipelines can request embeddings without knowing provide
 - Mock provider returns predictable embeddings.
 - Batch input preserves order.
 - Provider errors become controlled application errors.
-- Dimension mismatch is detected.
+- A provider/model whose embedding size does not match the current database schema is rejected.
 - Tests do not call paid APIs by default.
 
 ---

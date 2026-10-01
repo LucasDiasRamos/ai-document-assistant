@@ -86,6 +86,7 @@ filename
 original_filename
 file_path
 status
+error_message
 created_at
 updated_at
 ```
@@ -159,7 +160,7 @@ APP_NAME
 DATABASE_URL
 ```
 
-Future variables may include `LLM_PROVIDER`, `LLM_MODEL`, `EMBEDDING_MODEL`, provider API keys, `CHUNK_SIZE`, `CHUNK_OVERLAP`, and `RETRIEVAL_TOP_K`.
+Future variables may include `LLM_PROVIDER`, `LLM_MODEL`, `EMBEDDING_MODEL`, provider API keys, `CHUNK_SIZE`, `CHUNK_OVERLAP`, and `RETRIEVAL_TOP_K`. The embedding vector dimension is intentionally schema-owned rather than runtime-configurable; changing it requires a database migration and a matching ORM update.
 
 Secrets must never be committed.
 
@@ -167,11 +168,7 @@ Secrets must never be committed.
 
 Docker Compose provides PostgreSQL with pgvector support through `pgvector/pgvector:pg16`.
 
-The extension must still be enabled in the database:
-
-```sql
-CREATE EXTENSION IF NOT EXISTS vector;
-```
+Database schema changes are versioned with Alembic. Running `alembic upgrade head` enables the pgvector extension and creates the current relational/vector schema.
 
 ## 13. Testing strategy
 
