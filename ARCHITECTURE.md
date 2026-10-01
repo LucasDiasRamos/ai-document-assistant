@@ -112,7 +112,7 @@ Relationship: `Document 1 ---- N DocumentChunk`.
 ## 6. Ingestion flow
 
 1. Client uploads PDF.
-2. Backend validates filename extension, MIME type, PDF signature, non-empty content, and configured size limit.
+2. ASGI middleware bounds the incoming request body before multipart parsing/spooling. The service then validates the exact file size, filename length, extension, MIME type, PDF signature, and non-empty content.
 3. File is stored locally for the MVP. If database persistence fails, the stored file is removed before the error is propagated.
 4. Document record is created.
 5. PyMuPDF extracts text page by page.
