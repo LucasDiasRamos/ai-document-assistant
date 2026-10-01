@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
+from app.api.dependencies import get_embedding_provider_dependency
 from app.core.database import get_db
 from app.schemas.document import APIError, DocumentUploadResponse
 from app.services.document_service import (
@@ -11,7 +12,6 @@ from app.services.document_service import (
 from app.services.embedding_service import (
     EmbeddingError,
     EmbeddingProvider,
-    get_embedding_provider,
 )
 from app.services.ingestion_service import (
     DocumentIngestionError,
@@ -38,7 +38,9 @@ def upload_document(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     storage: StorageService = Depends(get_storage_service),
-    embedding_provider: EmbeddingProvider = Depends(get_embedding_provider),
+    embedding_provider: EmbeddingProvider = Depends(
+        get_embedding_provider_dependency
+    ),
 ) -> DocumentUploadResponse:
     try:
         document = create_uploaded_document(
