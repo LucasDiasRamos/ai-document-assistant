@@ -112,8 +112,8 @@ Relationship: `Document 1 ---- N DocumentChunk`.
 ## 6. Ingestion flow
 
 1. Client uploads PDF.
-2. Backend validates the file.
-3. File is stored locally for the MVP.
+2. ASGI middleware bounds the incoming request body before multipart parsing/spooling. The service then validates the exact file size, filename length, extension, MIME type, PDF signature, and non-empty content.
+3. File is stored locally for the MVP. If database persistence fails, the stored file is removed before the error is propagated.
 4. Document record is created.
 5. PyMuPDF extracts text page by page.
 6. Text is split into overlapping chunks.
@@ -162,6 +162,7 @@ Current variables:
 APP_NAME
 DATABASE_URL
 STORAGE_ROOT
+MAX_UPLOAD_SIZE_BYTES
 ```
 
 Future variables may include `LLM_PROVIDER`, `LLM_MODEL`, `EMBEDDING_MODEL`, provider API keys, `CHUNK_SIZE`, `CHUNK_OVERLAP`, and `RETRIEVAL_TOP_K`. The embedding vector dimension is intentionally schema-owned rather than runtime-configurable; changing it requires a database migration and a matching ORM update.

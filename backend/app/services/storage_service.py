@@ -119,3 +119,7 @@ class StorageService:
 
 
 storage_service = StorageService()
+
+
+def get_storage_service() -> StorageService:
+    return storage_service

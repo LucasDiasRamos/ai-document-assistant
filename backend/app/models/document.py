@@ -13,6 +13,9 @@ if TYPE_CHECKING:
     from app.models.document_chunk import DocumentChunk
 
 
+DOCUMENT_FILENAME_MAX_LENGTH = 255
+
+
 class DocumentStatus(StrEnum):
     UPLOADED = "uploaded"
     PROCESSING = "processing"
@@ -24,8 +27,8 @@ class Document(Base):
     __tablename__ = "documents"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    filename: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    filename: Mapped[str] = mapped_column(String(DOCUMENT_FILENAME_MAX_LENGTH), unique=True, nullable=False)
+    original_filename: Mapped[str] = mapped_column(String(DOCUMENT_FILENAME_MAX_LENGTH), nullable=False)
     file_path: Mapped[str] = mapped_column(String(1024), unique=True, nullable=False)
     status: Mapped[DocumentStatus] = mapped_column(
         SqlEnum(
