@@ -68,7 +68,7 @@ def create_uploaded_document(
             raise DocumentCleanupError(
                 "Document persistence failed and stored-file cleanup also failed"
             ) from cleanup_error
-        raise persistence_error
+        raise
 
     return document
 
@@ -82,7 +82,8 @@ def _validate_upload(upload: UploadFile) -> str:
     if Path(original_filename).suffix.lower() != ".pdf":
         raise UnsupportedDocumentTypeError("Only PDF files are supported")
 
-    if upload.content_type != "application/pdf":
+    content_type = (upload.content_type or "").split(";", 1)[0].strip().lower()
+    if content_type != "application/pdf":
         raise UnsupportedDocumentTypeError("Content-Type must be application/pdf")
 
     stream = upload.file
