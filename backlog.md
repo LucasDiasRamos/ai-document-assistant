@@ -208,7 +208,7 @@ Requirements:
 - foreign key to `Document`;
 - cascade deletion;
 - pgvector `Vector` column;
-- embedding dimension configured in one authoritative place;
+- embedding dimension treated as schema-owned and changed only through a migration plus matching ORM update;
 - index strategy added when retrieval implementation is ready.
 
 ### Expected result
@@ -444,7 +444,7 @@ Configuration should define:
 
 - provider;
 - model;
-- vector dimension;
+- embedding model compatibility with the schema-owned vector dimension;
 - API key.
 
 Validate that provider dimension matches the pgvector schema.
@@ -458,7 +458,7 @@ The ingestion and query pipelines can request embeddings without knowing provide
 - Mock provider returns predictable embeddings.
 - Batch input preserves order.
 - Provider errors become controlled application errors.
-- Dimension mismatch is detected.
+- A provider/model whose embedding size does not match the current database schema is rejected.
 - Tests do not call paid APIs by default.
 
 ---
