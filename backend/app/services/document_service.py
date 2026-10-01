@@ -30,6 +30,10 @@ class InvalidPdfSignatureError(DocumentUploadValidationError):
     pass
 
 
+class DocumentCleanupError(RuntimeError):
+    pass
+
+
 def create_uploaded_document(
     db: Session,
     upload: UploadFile,
@@ -56,13 +60,15 @@ def create_uploaded_document(
         db.flush()
         db.refresh(document)
         db.commit()
-    except Exception:
+    except Exception as persistence_error:
         db.rollback()
         try:
             storage.delete(stored.path)
-        except Exception:
-            pass
-        raise
+        except Exception as cleanup_error:
+            raise DocumentCleanupError(
+                "Document persistence failed and stored-file cleanup also failed"
+            ) from cleanup_error
+        raise persistence_error
 
     return document
 
