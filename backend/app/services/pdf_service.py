@@ -56,15 +56,18 @@ def extract_pdf_pages(path: str | Path) -> list[ExtractedPage]:
 
         pages: list[ExtractedPage] = []
 
-        for page_index, page in enumerate(document, start=1):
+        for page_offset in range(document.page_count):
+            page_number = page_offset + 1
+
             try:
+                page = document.load_page(page_offset)
                 raw_text = page.get_text("text", sort=True)
             except RuntimeError as exc:
-                raise PdfPageExtractionError(page_index) from exc
+                raise PdfPageExtractionError(page_number) from exc
 
             pages.append(
                 ExtractedPage(
-                    page_number=page_index,
+                    page_number=page_number,
                     text=_normalize_text(raw_text),
                 )
             )
