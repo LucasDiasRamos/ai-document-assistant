@@ -14,6 +14,7 @@ from app.services.embedding_service import (
     EmbeddingProvider,
 )
 from app.services.ingestion_service import (
+    DocumentFailureStateError,
     DocumentIngestionError,
     process_document,
 )
@@ -31,6 +32,7 @@ router = APIRouter(prefix="/documents", tags=["Documents"])
         status.HTTP_400_BAD_REQUEST: {"model": APIError},
         status.HTTP_413_REQUEST_ENTITY_TOO_LARGE: {"model": APIError},
         status.HTTP_422_UNPROCESSABLE_ENTITY: {"model": APIError},
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {"model": APIError},
         status.HTTP_503_SERVICE_UNAVAILABLE: {"model": APIError},
     },
 )
@@ -64,6 +66,11 @@ def upload_document(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
+        ) from exc
+    except DocumentFailureStateError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Document processing state could not be persisted",
         ) from exc
     except (PdfExtractionError, DocumentIngestionError) as exc:
         raise HTTPException(
