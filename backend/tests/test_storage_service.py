@@ -1,5 +1,6 @@
 from io import BytesIO
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -110,3 +111,54 @@ def test_save_rejects_suffix_with_path_separator(tmp_path: Path) -> None:
             original_filename="manual.pdf",
             suffix="../pdf",
         )
+
+
+def test_save_retries_uuid_collision_without_deleting_existing_file(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = StorageService(tmp_path)
+    existing = tmp_path / "collision.pdf"
+    existing.write_bytes(b"existing-data")
+
+    generated = iter(
+        [
+            SimpleNamespace(hex="collision"),
+            SimpleNamespace(hex="new-file"),
+        ]
+    )
+    monkeypatch.setattr(
+        "app.services.storage_service.uuid4",
+        lambda: next(generated),
+    )
+
+    stored = service.save(
+        BytesIO(PDF_BYTES),
+        original_filename="manual.pdf",
+    )
+
+    assert existing.read_bytes() == b"existing-data"
+    assert stored.filename == "new-file.pdf"
+    assert stored.path.read_bytes() == PDF_BYTES
+
+
+def test_save_raises_after_repeated_uuid_collisions_without_data_loss(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = StorageService(tmp_path)
+    existing = tmp_path / "collision.pdf"
+    existing.write_bytes(b"existing-data")
+
+    monkeypatch.setattr(
+        "app.services.storage_service.uuid4",
+        lambda: SimpleNamespace(hex="collision"),
+    )
+
+    with pytest.raises(FileExistsError, match="unique storage filename"):
+        service.save(
+            BytesIO(PDF_BYTES),
+            original_filename="manual.pdf",
+        )
+
+    assert existing.read_bytes() == b"existing-data"
