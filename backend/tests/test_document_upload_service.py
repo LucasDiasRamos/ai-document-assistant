@@ -9,6 +9,7 @@ from starlette.datastructures import Headers
 from app.core.config import settings
 from app.models.document import DocumentStatus
 from app.services.document_service import (
+    DocumentCleanupError,
     DocumentTooLargeError,
     EmptyDocumentError,
     InvalidPdfSignatureError,
@@ -199,3 +200,23 @@ def test_database_failure_rolls_back_and_removes_stored_file(
 
     assert db.rolled_back is True
     assert list(tmp_path.iterdir()) == []
+
+
+class FailingDeleteStorage(StorageService):
+    def delete(self, path):
+        raise OSError("cleanup failure")
+
+
+def test_database_and_cleanup_failure_is_not_silent(tmp_path: Path) -> None:
+    storage = FailingDeleteStorage(tmp_path)
+    db = FakeSession(fail_flush=True)
+
+    with pytest.raises(DocumentCleanupError, match="cleanup also failed"):
+        create_uploaded_document(
+            db,
+            make_upload(PDF_BYTES),
+            storage=storage,
+        )
+
+    assert db.rolled_back is True
+    assert len(list(tmp_path.iterdir())) == 1
