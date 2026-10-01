@@ -20,11 +20,12 @@ Implemented:
 - `Document` and `DocumentChunk` persistence models
 - Public document schemas
 - Persistence/schema tests
+- Safe local PDF storage with UUID filenames and path containment
+- Storage service tests
 - Initial project documentation
 
 Planned next:
 
-- Safe PDF storage
 - PDF upload endpoint
 - PDF text extraction with page metadata
 - Chunking
