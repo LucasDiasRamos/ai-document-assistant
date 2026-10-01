@@ -165,3 +165,7 @@ def build_embedding_provider(
         timeout_seconds=settings.embedding_timeout_seconds,
         client=client,
     )
+
+
+def get_embedding_provider() -> EmbeddingProvider:
+    return build_embedding_provider()
