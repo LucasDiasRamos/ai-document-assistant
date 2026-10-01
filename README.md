@@ -26,12 +26,14 @@ Implemented:
 - Page-aware PDF text extraction with PyMuPDF
 - Controlled handling for corrupt, non-PDF, blank-page, and encrypted files
 - Page-aware overlapping chunking with deterministic indexes
-- Storage, upload, PDF extraction, and chunking tests
+- Provider-neutral embedding abstraction with OpenAI as the first provider
+- Schema-aligned 1536-dimension embedding validation
+- Storage, upload, PDF extraction, chunking, and embedding tests
 - Initial project documentation
 
 Planned next:
 
-- Embedding generation
+- Document ingestion orchestration
 - pgvector similarity search
 - RAG answer generation with source citations
 - React frontend
@@ -72,11 +74,12 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full architecture and [PRD.md](PR
 - PostgreSQL 16
 - pgvector
 - PyMuPDF
+- OpenAI embeddings
 - Docker / Docker Compose
 - Alembic
 - Pytest
 
-The frontend and AI provider will be added in later milestones.
+The frontend and generation/LLM provider will be added in later milestones.
 
 ## Local setup
 
