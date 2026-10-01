@@ -25,12 +25,12 @@ Implemented:
 - Filesystem/database rollback on failed persistence
 - Page-aware PDF text extraction with PyMuPDF
 - Controlled handling for corrupt, non-PDF, blank-page, and encrypted files
-- Storage, upload, and PDF extraction tests
+- Page-aware overlapping chunking with deterministic indexes
+- Storage, upload, PDF extraction, and chunking tests
 - Initial project documentation
 
 Planned next:
 
-- Chunking
 - Embedding generation
 - pgvector similarity search
 - RAG answer generation with source citations

@@ -138,10 +138,16 @@ Important metadata: document ID, original filename, page number, and chunk index
 ## 8. Chunking strategy
 
 Initial strategy:
-- approximately 800 tokens per chunk;
-- approximately 100-150 tokens overlap;
-- preserve page attribution;
-- centralize chunking parameters.
+- `CHUNK_SIZE=800`;
+- `CHUNK_OVERLAP=120`;
+- chunks never cross page boundaries;
+- page attribution is preserved directly on every chunk;
+- `chunk_index` is global and deterministic within a document;
+- blank pages do not produce chunks;
+- the MVP uses provider-neutral lexical units (words/punctuation) as an approximation of tokenizer tokens, avoiding coupling to a specific embedding vendor before a model is selected;
+- CJK text and abnormally long uninterrupted tokens fall back to character-level spans so `CHUNK_SIZE` remains an effective upper bound even when whitespace word boundaries are absent.
+
+The window settings are centralized and validated so overlap must be smaller than chunk size.
 
 ## 9. Retrieval strategy
 
@@ -163,6 +169,8 @@ APP_NAME
 DATABASE_URL
 STORAGE_ROOT
 MAX_UPLOAD_SIZE_BYTES
+CHUNK_SIZE
+CHUNK_OVERLAP
 ```
 
 Future variables may include `LLM_PROVIDER`, `LLM_MODEL`, `EMBEDDING_MODEL`, provider API keys, `CHUNK_SIZE`, `CHUNK_OVERLAP`, and `RETRIEVAL_TOP_K`. The embedding vector dimension is intentionally schema-owned rather than runtime-configurable; changing it requires a database migration and a matching ORM update.
