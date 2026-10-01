@@ -69,7 +69,9 @@ Route handlers should stay thin and delegate application behavior to services.
 - pgvector stores embeddings in the MVP.
 - Schema changes must use Alembic after migrations are introduced.
 - Use intentional foreign keys and cascades.
-- Do not hard-code embedding dimensionality in multiple places.
+- Treat embedding dimensionality as a database schema decision, not a runtime environment setting.
+- Historical migrations must keep their original vector dimension immutable.
+- Changing embedding dimensionality requires a new Alembic migration and a matching ORM update in the same change.
 
 ## RAG rules
 
