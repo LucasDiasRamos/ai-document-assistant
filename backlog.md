@@ -465,7 +465,7 @@ The ingestion and query pipelines can request embeddings without knowing provide
 
 ## API-11 — Document ingestion orchestrator
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** API-04, API-08, API-09, API-10
 
