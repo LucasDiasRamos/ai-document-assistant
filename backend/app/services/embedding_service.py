@@ -57,10 +57,9 @@ class OpenAIEmbeddingProvider:
         api_key: str,
         timeout_seconds: float,
         client: Any | None = None,
-        dimension: int = EMBEDDING_DIMENSION,
     ) -> None:
         self.model = model
-        self.dimension = dimension
+        self.dimension = EMBEDDING_DIMENSION
 
         self._validate_model_dimension()
 
