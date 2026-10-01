@@ -144,7 +144,8 @@ Initial strategy:
 - page attribution is preserved directly on every chunk;
 - `chunk_index` is global and deterministic within a document;
 - blank pages do not produce chunks;
-- the MVP uses provider-neutral lexical units (words/punctuation) as an approximation of tokenizer tokens, avoiding coupling to a specific embedding vendor before a model is selected.
+- the MVP uses provider-neutral lexical units (words/punctuation) as an approximation of tokenizer tokens, avoiding coupling to a specific embedding vendor before a model is selected;
+- CJK text and abnormally long uninterrupted tokens fall back to character-level spans so `CHUNK_SIZE` remains an effective upper bound even when whitespace word boundaries are absent.
 
 The window settings are centralized and validated so overlap must be smaller than chunk size.
 
