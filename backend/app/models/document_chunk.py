@@ -13,6 +13,9 @@ if TYPE_CHECKING:
     from app.models.document import Document
 
 
+EMBEDDING_DIMENSION = 1536
+
+
 class DocumentChunk(Base):
     __tablename__ = "document_chunks"
     __table_args__ = (
@@ -35,7 +38,7 @@ class DocumentChunk(Base):
     page_number: Mapped[int] = mapped_column(nullable=False)
     chunk_index: Mapped[int] = mapped_column(nullable=False)
     embedding: Mapped[list[float]] = mapped_column(
-        Vector(1536),
+        Vector(EMBEDDING_DIMENSION),
         nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(
