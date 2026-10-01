@@ -28,12 +28,15 @@ Implemented:
 - Page-aware overlapping chunking with deterministic indexes
 - Provider-neutral embedding abstraction with OpenAI as the first provider
 - Schema-aligned 1536-dimension embedding validation
-- Storage, upload, PDF extraction, chunking, and embedding tests
+- Synchronous document ingestion orchestration from upload through persisted chunks
+- Safe processing/failed/processed status transitions
+- Storage, upload, extraction, chunking, embedding, and ingestion tests
 - Initial project documentation
 
 Planned next:
 
-- Document ingestion orchestration
+- Document listing and inspection
+- Document deletion
 - pgvector similarity search
 - RAG answer generation with source citations
 - React frontend
