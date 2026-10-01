@@ -423,7 +423,7 @@ Large page-aware text becomes an ordered list of chunks that retain document/pag
 
 ## API-10 — Embedding provider abstraction
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** API-01
 
