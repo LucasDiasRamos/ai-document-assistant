@@ -147,3 +147,47 @@ def test_invalid_chunk_window_is_rejected(
 
 def test_empty_page_list_returns_no_chunks() -> None:
     assert chunk_pages([], chunk_size=10, chunk_overlap=2) == []
+
+
+def test_cjk_text_without_whitespace_is_bounded_and_overlapped() -> None:
+    pages = [
+        ExtractedPage(
+            page_number=1,
+            text="人工智能文档检索系统",
+        )
+    ]
+
+    chunks = chunk_pages(
+        pages,
+        chunk_size=4,
+        chunk_overlap=1,
+    )
+
+    assert [chunk.content for chunk in chunks] == [
+        "人工智能",
+        "能文档检",
+        "检索系统",
+    ]
+    assert all(len(chunk.content) <= 4 for chunk in chunks)
+
+
+def test_long_unbroken_ascii_token_uses_character_fallback() -> None:
+    pages = [
+        ExtractedPage(
+            page_number=1,
+            text="abcdefghij",
+        )
+    ]
+
+    chunks = chunk_pages(
+        pages,
+        chunk_size=4,
+        chunk_overlap=1,
+    )
+
+    assert [chunk.content for chunk in chunks] == [
+        "abcd",
+        "defg",
+        "ghij",
+    ]
+    assert all(len(chunk.content) <= 4 for chunk in chunks)
