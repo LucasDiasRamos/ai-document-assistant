@@ -1,9 +1,7 @@
-from pathlib import Path
-
 import pytest
 
 from app.models.document import Document, DocumentStatus
-from app.models.document_chunk import EMBEDDING_DIMENSION
+from app.models.document_chunk import DocumentChunk, EMBEDDING_DIMENSION
 from app.services.chunk_service import TextChunk
 from app.services.embedding_service import EmbeddingProviderError
 from app.services.ingestion_service import (
@@ -259,7 +257,12 @@ def test_successful_reprocessing_replaces_existing_chunks() -> None:
     db = FakeSession()
     document = make_document()
     document.chunks = [
-        type("OldChunk", (), {"content": "old"})(),
+        DocumentChunk(
+            content="old",
+            page_number=1,
+            chunk_index=0,
+            embedding=embedding(0.9),
+        )
     ]
     provider = FakeEmbeddingProvider(
         vectors=[embedding(0.1), embedding(0.2)]
