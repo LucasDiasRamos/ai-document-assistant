@@ -18,6 +18,12 @@ class TextChunk:
     content: str
 
 
+@dataclass(frozen=True, slots=True)
+class _TextSpan:
+    start: int
+    end: int
+
+
 def chunk_pages(
     pages: Iterable[ExtractedPage],
     *,
@@ -59,19 +65,19 @@ def _chunk_page(
     if not text:
         return []
 
-    token_matches = list(_TOKEN_PATTERN.finditer(text))
-    if not token_matches:
+    token_spans = _build_token_spans(text, chunk_size=chunk_size)
+    if not token_spans:
         return []
 
     step = chunk_size - chunk_overlap
     chunks: list[TextChunk] = []
 
-    for window_start in range(0, len(token_matches), step):
-        window_end = min(window_start + chunk_size, len(token_matches))
+    for window_start in range(0, len(token_spans), step):
+        window_end = min(window_start + chunk_size, len(token_spans))
 
-        first = token_matches[window_start]
-        last = token_matches[window_end - 1]
-        content = text[first.start() : last.end()].strip()
+        first = token_spans[window_start]
+        last = token_spans[window_end - 1]
+        content = text[first.start : last.end].strip()
 
         chunks.append(
             TextChunk(
@@ -81,10 +87,47 @@ def _chunk_page(
             )
         )
 
-        if window_end == len(token_matches):
+        if window_end == len(token_spans):
             break
 
     return chunks
+
+
+def _build_token_spans(text: str, *, chunk_size: int) -> list[_TextSpan]:
+    spans: list[_TextSpan] = []
+
+    for match in _TOKEN_PATTERN.finditer(text):
+        token = match.group(0)
+
+        if _needs_character_fallback(token, chunk_size=chunk_size):
+            spans.extend(
+                _TextSpan(index, index + 1)
+                for index in range(match.start(), match.end())
+            )
+            continue
+
+        spans.append(_TextSpan(match.start(), match.end()))
+
+    return spans
+
+
+def _needs_character_fallback(token: str, *, chunk_size: int) -> bool:
+    if len(token) > chunk_size:
+        return True
+
+    return any(_is_cjk_character(character) for character in token)
+
+
+def _is_cjk_character(character: str) -> bool:
+    codepoint = ord(character)
+
+    return (
+        0x3040 <= codepoint <= 0x30FF  # Hiragana and Katakana
+        or 0x3400 <= codepoint <= 0x4DBF  # CJK Extension A
+        or 0x4E00 <= codepoint <= 0x9FFF  # CJK Unified Ideographs
+        or 0xAC00 <= codepoint <= 0xD7AF  # Hangul syllables
+        or 0xF900 <= codepoint <= 0xFAFF  # CJK Compatibility Ideographs
+    )
 
 
 def _validate_window(*, size: int, overlap: int) -> None:
