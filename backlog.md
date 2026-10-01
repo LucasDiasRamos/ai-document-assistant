@@ -338,7 +338,7 @@ A user can upload a valid PDF and receive a persisted document record.
 
 ## API-08 — PDF text extraction
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** API-07
 
