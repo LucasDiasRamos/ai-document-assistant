@@ -301,7 +301,7 @@ Uploaded documents are stored safely without filename collisions or arbitrary pa
 
 ## API-07 — PDF upload endpoint
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** API-03, API-05, API-06
 
