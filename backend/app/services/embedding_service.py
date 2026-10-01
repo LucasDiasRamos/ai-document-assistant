@@ -166,6 +166,3 @@ def build_embedding_provider(
         client=client,
     )
 
-
-def get_embedding_provider() -> EmbeddingProvider:
-    return build_embedding_provider()
