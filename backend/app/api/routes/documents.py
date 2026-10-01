@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.schemas.document import DocumentUploadResponse
+from app.schemas.document import APIError, DocumentUploadResponse
 from app.services.document_service import (
     DocumentTooLargeError,
     DocumentUploadValidationError,
@@ -17,6 +17,10 @@ router = APIRouter(prefix="/documents", tags=["Documents"])
     "",
     response_model=DocumentUploadResponse,
     status_code=status.HTTP_201_CREATED,
+    responses={
+        status.HTTP_400_BAD_REQUEST: {"model": APIError},
+        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE: {"model": APIError},
+    },
 )
 def upload_document(
     file: UploadFile = File(...),
