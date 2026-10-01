@@ -1,4 +1,3 @@
-from app.core.config import settings
 from app.models import Document, DocumentChunk, DocumentStatus
 
 
@@ -11,9 +10,9 @@ def test_document_status_values_are_stable() -> None:
     ]
 
 
-def test_document_chunk_embedding_dimension_matches_settings() -> None:
+def test_document_chunk_embedding_dimension_matches_schema() -> None:
     embedding_type = DocumentChunk.__table__.c.embedding.type
-    assert embedding_type.dim == settings.embedding_dimension
+    assert embedding_type.dim == 1536
 
 
 def test_document_chunks_use_database_cascade() -> None:
