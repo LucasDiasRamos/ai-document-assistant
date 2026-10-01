@@ -43,9 +43,8 @@ def process_document(
     page_extractor: PageExtractor = extract_pdf_pages,
     page_chunker: PageChunker = chunk_pages,
 ) -> Document:
-    _mark_processing(db, document)
-
     try:
+        _mark_processing(db, document)
         pages = page_extractor(document.file_path)
         chunks = page_chunker(pages)
 
