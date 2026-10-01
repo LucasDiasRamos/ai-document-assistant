@@ -72,7 +72,7 @@ The MVP stores source PDFs under the configured `STORAGE_ROOT`. Client filenames
 Extracts text page by page using plain-text extraction with reading-order sorting. Page numbers are converted to 1-based values for user-facing citations, blank pages are preserved with empty text, and corrupt/non-PDF/password-protected files raise controlled extraction errors. OCR is intentionally outside the MVP.
 
 ### Embedding service
-Converts text into vectors behind a replaceable provider boundary.
+Converts text into vectors behind a replaceable provider boundary. The MVP defines a provider protocol with single-text and batch embedding methods and uses OpenAI as the first concrete implementation. The default model is `text-embedding-3-small`, with the requested output dimension fixed to the database schema's `1536`. Provider responses are validated before persistence so dimension mismatches cannot silently reach pgvector.
 
 ### Retrieval service
 Embeds the user question, queries pgvector, ranks relevant chunks, and returns top-k chunks with source metadata.
@@ -171,9 +171,13 @@ STORAGE_ROOT
 MAX_UPLOAD_SIZE_BYTES
 CHUNK_SIZE
 CHUNK_OVERLAP
+EMBEDDING_PROVIDER
+EMBEDDING_MODEL
+EMBEDDING_TIMEOUT_SECONDS
+OPENAI_API_KEY
 ```
 
-Future variables may include `LLM_PROVIDER`, `LLM_MODEL`, `EMBEDDING_MODEL`, provider API keys, `CHUNK_SIZE`, `CHUNK_OVERLAP`, and `RETRIEVAL_TOP_K`. The embedding vector dimension is intentionally schema-owned rather than runtime-configurable; changing it requires a database migration and a matching ORM update.
+Future variables may include `LLM_PROVIDER`, `LLM_MODEL`, generation-provider API keys, and `RETRIEVAL_TOP_K`. The embedding vector dimension is intentionally schema-owned rather than runtime-configurable; changing it requires a database migration and a matching ORM update.
 
 Secrets must never be committed.
 

@@ -9,3 +9,4 @@ pymupdf
 pgvector
 pytest
 httpx
+openai
