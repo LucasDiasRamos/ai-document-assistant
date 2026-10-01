@@ -42,6 +42,8 @@ def upload_document(
         get_embedding_provider_dependency
     ),
 ) -> DocumentUploadResponse:
+    document = None
+
     try:
         document = create_uploaded_document(
             db,
@@ -66,16 +68,20 @@ def upload_document(
     except (PdfExtractionError, DocumentIngestionError) as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=document.error_message
-            if "document" in locals()
-            else "Document processing failed",
+            detail=(
+                document.error_message
+                if document is not None
+                else "Document processing failed"
+            ),
         ) from exc
     except EmbeddingError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=document.error_message
-            if "document" in locals()
-            else "Embedding provider unavailable",
+            detail=(
+                document.error_message
+                if document is not None
+                else "Embedding provider unavailable"
+            ),
         ) from exc
 
     return DocumentUploadResponse.model_validate(document)
