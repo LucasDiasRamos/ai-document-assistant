@@ -4,6 +4,7 @@ from sqlalchemy import text
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.database import engine
+from app.middleware.upload_limit import UploadRequestSizeLimitMiddleware
 
 app = FastAPI(
     title=f"{settings.app_name} API",
@@ -11,6 +12,7 @@ app = FastAPI(
     description="Backend API for an AI-powered document assistant using RAG.",
 )
 
+app.add_middleware(UploadRequestSizeLimitMiddleware)
 app.include_router(api_router)
 
 
