@@ -7,6 +7,7 @@ from app.services.pdf_service import (
     EncryptedPdfError,
     InvalidPdfError,
     PdfNotFoundError,
+    PdfPageExtractionError,
     extract_pdf_pages,
 )
 
@@ -115,3 +116,42 @@ def test_password_protected_pdf_is_rejected(tmp_path: Path) -> None:
         match="Password-protected PDFs are not supported",
     ):
         extract_pdf_pages(path)
+
+
+def test_page_loading_failure_is_wrapped_as_page_extraction_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    path = tmp_path / "partial.pdf"
+    path.write_bytes(b"%PDF-placeholder")
+
+    class FakePage:
+        def get_text(self, mode: str, *, sort: bool) -> str:
+            return "first page"
+
+    class FakeDocument:
+        is_pdf = True
+        needs_pass = False
+        page_count = 2
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def load_page(self, page_number: int):
+            if page_number == 1:
+                raise RuntimeError("damaged page tree")
+            return FakePage()
+
+    monkeypatch.setattr(
+        "app.services.pdf_service.pymupdf.open",
+        lambda _: FakeDocument(),
+    )
+
+    with pytest.raises(PdfPageExtractionError) as exc_info:
+        extract_pdf_pages(path)
+
+    assert exc_info.value.page_number == 2
+    assert "page 2" in str(exc_info.value)
