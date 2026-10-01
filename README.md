@@ -23,12 +23,13 @@ Implemented:
 - Safe local PDF storage with UUID filenames and path containment
 - PDF upload endpoint with type, signature, and size validation
 - Filesystem/database rollback on failed persistence
-- Storage and upload endpoint tests
+- Page-aware PDF text extraction with PyMuPDF
+- Controlled handling for corrupt, non-PDF, blank-page, and encrypted files
+- Storage, upload, and PDF extraction tests
 - Initial project documentation
 
 Planned next:
 
-- PDF text extraction with page metadata
 - Chunking
 - Embedding generation
 - pgvector similarity search

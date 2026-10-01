@@ -69,7 +69,7 @@ Adds vector data types and similarity operations to PostgreSQL, avoiding a secon
 The MVP stores source PDFs under the configured `STORAGE_ROOT`. Client filenames are never used as filesystem paths; files receive UUID-based internal names, and delete operations reject paths outside the configured root.
 
 ### PyMuPDF
-Extracts PDF text page by page so page attribution can be preserved.
+Extracts text page by page using plain-text extraction with reading-order sorting. Page numbers are converted to 1-based values for user-facing citations, blank pages are preserved with empty text, and corrupt/non-PDF/password-protected files raise controlled extraction errors. OCR is intentionally outside the MVP.
 
 ### Embedding service
 Converts text into vectors behind a replaceable provider boundary.
@@ -115,7 +115,7 @@ Relationship: `Document 1 ---- N DocumentChunk`.
 2. ASGI middleware bounds the incoming request body before multipart parsing/spooling. The service then validates the exact file size, filename length, extension, MIME type, PDF signature, and non-empty content.
 3. File is stored locally for the MVP. If database persistence fails, the stored file is removed before the error is propagated.
 4. Document record is created.
-5. PyMuPDF extracts text page by page.
+5. PyMuPDF extracts text page by page and preserves 1-based page metadata.
 6. Text is split into overlapping chunks.
 7. Each chunk receives metadata.
 8. Embeddings are generated.
