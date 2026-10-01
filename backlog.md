@@ -384,7 +384,7 @@ Text-based PDFs produce page-aware text ready for chunking.
 
 ## API-09 — Chunking service
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** API-08
 
