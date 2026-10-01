@@ -11,6 +11,7 @@ from app.models.document import DocumentStatus
 from app.services.document_service import (
     DocumentCleanupError,
     DocumentTooLargeError,
+    DocumentUploadValidationError,
     EmptyDocumentError,
     InvalidPdfSignatureError,
     UnsupportedDocumentTypeError,
@@ -230,7 +231,7 @@ def test_filename_longer_than_database_column_is_rejected(
     filename = f"{'a' * 252}.pdf"
 
     with pytest.raises(
-        Exception,
+        DocumentUploadValidationError,
         match="Filename must be at most 255 characters",
     ):
         create_uploaded_document(
