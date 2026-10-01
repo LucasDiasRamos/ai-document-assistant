@@ -263,7 +263,7 @@ The document API has documented and predictable OpenAPI contracts.
 
 ## API-06 — Safe local file storage service
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** API-01
 

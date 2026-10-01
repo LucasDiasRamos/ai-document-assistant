@@ -65,6 +65,9 @@ Stores documents, chunks, metadata, and later conversation history.
 ### pgvector
 Adds vector data types and similarity operations to PostgreSQL, avoiding a second vector database in the MVP.
 
+### Local file storage
+The MVP stores source PDFs under the configured `STORAGE_ROOT`. Client filenames are never used as filesystem paths; files receive UUID-based internal names, and delete operations reject paths outside the configured root.
+
 ### PyMuPDF
 Extracts PDF text page by page so page attribution can be preserved.
 
@@ -158,6 +161,7 @@ Current variables:
 ```text
 APP_NAME
 DATABASE_URL
+STORAGE_ROOT
 ```
 
 Future variables may include `LLM_PROVIDER`, `LLM_MODEL`, `EMBEDDING_MODEL`, provider API keys, `CHUNK_SIZE`, `CHUNK_OVERLAP`, and `RETRIEVAL_TOP_K`. The embedding vector dimension is intentionally schema-owned rather than runtime-configurable; changing it requires a database migration and a matching ORM update.
