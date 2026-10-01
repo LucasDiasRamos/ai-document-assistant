@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pydantic import Field, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     max_upload_size_bytes: int = Field(default=10 * 1024 * 1024, gt=0)
     chunk_size: int = Field(default=800, gt=0)
     chunk_overlap: int = Field(default=120, ge=0)
+    embedding_provider: str = "openai"
+    embedding_model: str = "text-embedding-3-small"
+    embedding_timeout_seconds: float = Field(default=30.0, gt=0)
+    openai_api_key: SecretStr | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",
