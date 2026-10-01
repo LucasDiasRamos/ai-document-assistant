@@ -21,12 +21,13 @@ Implemented:
 - Public document schemas
 - Persistence/schema tests
 - Safe local PDF storage with UUID filenames and path containment
-- Storage service tests
+- PDF upload endpoint with type, signature, and size validation
+- Filesystem/database rollback on failed persistence
+- Storage and upload endpoint tests
 - Initial project documentation
 
 Planned next:
 
-- PDF upload endpoint
 - PDF text extraction with page metadata
 - Chunking
 - Embedding generation
