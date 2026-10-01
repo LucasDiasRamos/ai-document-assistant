@@ -280,3 +280,30 @@ def test_successful_reprocessing_replaces_existing_chunks() -> None:
         "first chunk",
         "second chunk",
     ]
+
+
+def test_failed_reprocessing_keeps_existing_chunks() -> None:
+    db = FakeSession()
+    document = make_document()
+    old_chunk = DocumentChunk(
+        content="previous searchable content",
+        page_number=1,
+        chunk_index=0,
+        embedding=embedding(0.9),
+    )
+    document.chunks = [old_chunk]
+    provider = FakeEmbeddingProvider(
+        error=EmbeddingProviderError("temporary provider failure")
+    )
+
+    with pytest.raises(EmbeddingProviderError):
+        process_document(
+            db,
+            document,
+            provider,
+            page_extractor=extracted_pages,
+            page_chunker=prepared_chunks,
+        )
+
+    assert document.status == DocumentStatus.FAILED
+    assert document.chunks == [old_chunk]
