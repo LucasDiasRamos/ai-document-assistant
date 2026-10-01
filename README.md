@@ -16,13 +16,16 @@ Implemented:
 - SQLAlchemy base configuration
 - Environment-based configuration
 - PostgreSQL 16 + pgvector through Docker Compose
+- Alembic migration chain with pgvector initialization
+- `Document` and `DocumentChunk` persistence models
+- Public document schemas
+- Persistence/schema tests
 - Initial project documentation
 
 Planned next:
 
-- `Document` and `DocumentChunk` models
-- Alembic migrations
-- PDF upload and storage
+- Safe PDF storage
+- PDF upload endpoint
 - PDF text extraction with page metadata
 - Chunking
 - Embedding generation
@@ -116,17 +119,15 @@ pip install -r requirements.txt
 
 Copy `.env.example` to `backend/.env`.
 
-### 6. Enable pgvector
+### 6. Apply database migrations
+
+From `backend/`:
 
 ```bash
-docker exec -it ai_document_postgres psql -U postgres -d ai_document_assistant
+alembic upgrade head
 ```
 
-Then:
-
-```sql
-CREATE EXTENSION IF NOT EXISTS vector;
-```
+This enables pgvector and creates the current persistence schema.
 
 ### 7. Run the API
 
