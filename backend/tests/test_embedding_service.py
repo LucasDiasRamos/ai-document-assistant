@@ -240,3 +240,14 @@ def test_factory_builds_openai_provider_without_network_call(
 
     assert isinstance(provider, OpenAIEmbeddingProvider)
     assert provider.dimension == EMBEDDING_DIMENSION
+
+
+def test_openai_provider_dimension_cannot_be_overridden() -> None:
+    with pytest.raises(TypeError, match="dimension"):
+        OpenAIEmbeddingProvider(
+            model="text-embedding-3-small",
+            api_key="test-key",
+            timeout_seconds=1,
+            client=FakeClient(FakeEmbeddingsAPI()),
+            dimension=512,
+        )
