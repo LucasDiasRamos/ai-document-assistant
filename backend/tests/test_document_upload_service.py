@@ -220,3 +220,24 @@ def test_database_and_cleanup_failure_is_not_silent(tmp_path: Path) -> None:
 
     assert db.rolled_back is True
     assert len(list(tmp_path.iterdir())) == 1
+
+
+def test_filename_longer_than_database_column_is_rejected(
+    tmp_path: Path,
+) -> None:
+    storage = StorageService(tmp_path)
+    db = FakeSession()
+    filename = f"{'a' * 252}.pdf"
+
+    with pytest.raises(
+        Exception,
+        match="Filename must be at most 255 characters",
+    ):
+        create_uploaded_document(
+            db,
+            make_upload(PDF_BYTES, filename=filename),
+            storage=storage,
+        )
+
+    assert db.added == []
+    assert list(tmp_path.iterdir()) == []
