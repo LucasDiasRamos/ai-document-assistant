@@ -6,7 +6,11 @@ from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.models.document import Document, DocumentStatus
+from app.models.document import (
+    DOCUMENT_FILENAME_MAX_LENGTH,
+    Document,
+    DocumentStatus,
+)
 from app.services.storage_service import StorageService, storage_service
 
 
@@ -78,6 +82,11 @@ def _validate_upload(upload: UploadFile) -> str:
 
     if not original_filename:
         raise UnsupportedDocumentTypeError("A filename is required")
+
+    if len(original_filename) > DOCUMENT_FILENAME_MAX_LENGTH:
+        raise DocumentUploadValidationError(
+            f"Filename must be at most {DOCUMENT_FILENAME_MAX_LENGTH} characters"
+        )
 
     if Path(original_filename).suffix.lower() != ".pdf":
         raise UnsupportedDocumentTypeError("Only PDF files are supported")
