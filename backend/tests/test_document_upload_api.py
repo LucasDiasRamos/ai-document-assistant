@@ -127,3 +127,49 @@ def test_upload_invalid_pdf_signature_returns_bad_request(
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Uploaded file is not a valid PDF"
+
+
+def test_upload_request_limit_rejects_before_document_service(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "max_upload_size_bytes", 8)
+
+    response = client.post(
+        "/api/documents",
+        files={
+            "file": (
+                "manual.pdf",
+                b"%PDF-" + (b"x" * (70 * 1024)),
+                "application/pdf",
+            )
+        },
+    )
+
+    assert response.status_code == 413
+    assert response.json()["detail"] == (
+        "Upload request exceeds the allowed size"
+    )
+
+
+def test_upload_filename_longer_than_database_limit_returns_400(
+    client: TestClient,
+) -> None:
+    filename = f"{'a' * 252}.pdf"
+
+    response = client.post(
+        "/api/documents",
+        files={
+            "file": (
+                filename,
+                PDF_BYTES,
+                "application/pdf",
+            )
+        },
+    )
+
+    assert len(filename) == 256
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Filename must be at most 255 characters"
+    )
