@@ -7,7 +7,6 @@ from pgvector.sqlalchemy import Vector
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.config import settings
 from app.core.database import Base
 
 if TYPE_CHECKING:
@@ -36,7 +35,7 @@ class DocumentChunk(Base):
     page_number: Mapped[int] = mapped_column(nullable=False)
     chunk_index: Mapped[int] = mapped_column(nullable=False)
     embedding: Mapped[list[float]] = mapped_column(
-        Vector(settings.embedding_dimension),
+        Vector(1536),
         nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(
