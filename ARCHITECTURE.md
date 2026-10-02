@@ -55,6 +55,7 @@ GET  /health
 GET  /health/database
 POST /api/documents
 GET  /api/documents
+GET  /api/documents/{document_id}
 DELETE /api/documents/{document_id}
 POST /api/chat
 ```
@@ -76,6 +77,9 @@ Converts text into vectors behind a replaceable provider boundary. The MVP defin
 
 ### Ingestion orchestrator
 Coordinates PDF extraction, page-aware chunking, batch embedding generation, chunk persistence, and document status transitions. The MVP invokes this synchronously after a successful upload. Processing state is persisted before external work begins; chunks and the final `processed` state are committed together. During reprocessing, existing chunk deletions are flushed before replacement inserts to avoid unique-index collisions. Failures roll back incomplete work, retain existing chunks during failed reprocessing, persist a user-safe `failed` message, and log only safe technical diagnostics such as document ID and exception types.
+
+### Document read API
+Exposes a bounded document list and single-document detail using public schemas only. The list is ordered newest-first, supports a maximum limit of 100 records per request, and returns the total number of documents. Internal storage filename/path fields are never serialized.
 
 ### Retrieval service
 Embeds the user question, queries pgvector, ranks relevant chunks, and returns top-k chunks with source metadata.
