@@ -26,6 +26,15 @@ from app.services.pdf_service import (
     PdfPageExtractionError,
     extract_pdf_pages,
 )
+from app.services.rag_prompt_service import (
+    GROUNDING_INSTRUCTIONS,
+    INSUFFICIENT_CONTEXT_MESSAGE,
+    GroundedPrompt,
+    RAGContextChunk,
+    RAGPromptError,
+    RAGSource,
+    build_grounded_prompt,
+)
 from app.services.storage_service import (
     StorageService,
     StoredFile,
@@ -46,8 +55,14 @@ __all__ = [
     "EncryptedPdfError",
     "ExtractedPage",
     "InvalidEmbeddingBatchError",
+    "GROUNDING_INSTRUCTIONS",
+    "GroundedPrompt",
+    "INSUFFICIENT_CONTEXT_MESSAGE",
     "InvalidPdfError",
     "NoExtractableTextError",
+    "RAGContextChunk",
+    "RAGPromptError",
+    "RAGSource",
     "OpenAIEmbeddingProvider",
     "PdfExtractionError",
     "PdfNotFoundError",
@@ -57,6 +72,7 @@ __all__ = [
     "TextChunk",
     "UnsafeStoragePathError",
     "build_embedding_provider",
+    "build_grounded_prompt",
     "chunk_pages",
     "extract_pdf_pages",
     "process_document",
