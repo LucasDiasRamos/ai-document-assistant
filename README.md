@@ -32,12 +32,14 @@ Implemented:
 - Safe processing/failed/processed status transitions
 - Document list and detail endpoints with public-safe metadata
 - Document deletion with database cascade and local-file cleanup
-- Storage, upload, extraction, chunking, embedding, ingestion, document-read, and deletion tests
+- Grounded RAG prompt/context builder with source metadata separated from generated text
+- Storage, upload, extraction, chunking, embedding, ingestion, document-read, deletion, and RAG prompt tests
 - Initial project documentation
 
 Planned next:
 
 - pgvector similarity search
+- LLM provider abstraction
 - RAG answer generation with source citations
 - React frontend
 
