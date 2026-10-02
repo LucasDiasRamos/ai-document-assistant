@@ -508,7 +508,7 @@ One uploaded PDF becomes a searchable collection of vectorized chunks.
 
 ## API-12 — List and inspect documents
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** API-03, API-05
 
