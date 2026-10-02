@@ -90,7 +90,7 @@ Embeds the user question, queries pgvector, ranks relevant chunks, and returns t
 Builds a provider-neutral grounded prompt from a user question and retrieved document context. Each context block is labeled with public document name and page number, while citation metadata is kept separately from generated text. Document content is explicitly treated as untrusted data rather than instructions, reducing prompt-injection risk from uploaded PDFs. Empty retrieval is represented explicitly so later orchestration can choose a safe insufficient-context path.
 
 ### LLM service
-Sends the grounded prompt to the selected generation provider and returns an answer constrained to document context.
+Generation is hidden behind a provider-neutral `GenerationProvider` interface. The first implementation uses the OpenAI Responses API. `LLM_MODEL` is required explicitly rather than hardcoded in application code, while provider and timeout remain environment-configurable. Input messages are validated before provider calls, timeout failures are distinguished from other provider failures, and empty provider responses are rejected. Prompt construction remains a separate RAG concern rather than being embedded in the provider layer.
 
 ## 5. Data model
 
@@ -189,9 +189,12 @@ EMBEDDING_PROVIDER
 EMBEDDING_MODEL
 EMBEDDING_TIMEOUT_SECONDS
 OPENAI_API_KEY
+LLM_PROVIDER
+LLM_MODEL
+LLM_TIMEOUT_SECONDS
 ```
 
-Future variables may include `LLM_PROVIDER`, `LLM_MODEL`, generation-provider API keys, and `RETRIEVAL_TOP_K`. The embedding vector dimension is intentionally schema-owned rather than runtime-configurable; changing it requires a database migration and a matching ORM update.
+Future variables may include additional generation-provider API keys and `RETRIEVAL_TOP_K`. The embedding vector dimension is intentionally schema-owned rather than runtime-configurable; changing it requires a database migration and a matching ORM update.
 
 Secrets must never be committed.
 
