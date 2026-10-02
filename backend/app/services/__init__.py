@@ -38,6 +38,14 @@ from app.services.pdf_service import (
     PdfPageExtractionError,
     extract_pdf_pages,
 )
+from app.services.retrieval_service import (
+    MAX_RETRIEVAL_TOP_K,
+    RetrievalEmbeddingDimensionError,
+    RetrievalError,
+    RetrievalInputError,
+    RetrievedChunk,
+    retrieve_relevant_chunks,
+)
 from app.services.rag_prompt_service import (
     GROUNDING_INSTRUCTIONS,
     INSUFFICIENT_CONTEXT_MESSAGE,
@@ -79,10 +87,15 @@ __all__ = [
     "GroundedPrompt",
     "INSUFFICIENT_CONTEXT_MESSAGE",
     "InvalidPdfError",
+    "MAX_RETRIEVAL_TOP_K",
     "NoExtractableTextError",
     "RAGContextChunk",
     "RAGPromptError",
     "RAGSource",
+    "RetrievalEmbeddingDimensionError",
+    "RetrievalError",
+    "RetrievalInputError",
+    "RetrievedChunk",
     "OpenAIEmbeddingProvider",
     "OpenAIGenerationProvider",
     "PdfExtractionError",
@@ -98,5 +111,6 @@ __all__ = [
     "chunk_pages",
     "extract_pdf_pages",
     "process_document",
+    "retrieve_relevant_chunks",
     "storage_service",
 ]

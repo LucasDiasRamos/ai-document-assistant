@@ -84,7 +84,7 @@ Exposes a bounded document list and single-document detail using public schemas 
 Deleting a document removes the database record first; `DocumentChunk` rows and vectors are removed through the configured database cascade. The source PDF is then deleted through the storage service. An already-missing source file is treated as successful cleanup so a stale filesystem state cannot make the database record undeletable. A database failure rolls back before file cleanup begins, while a genuine post-commit filesystem failure is surfaced and logged as a controlled cleanup error.
 
 ### Retrieval service
-Embeds the user question, queries pgvector, ranks relevant chunks, and returns top-k chunks with source metadata.
+Embeds the user question through the provider boundary and queries pgvector using cosine distance (`<=>`). Only chunks whose parent document is `processed` are eligible. Results are ordered by nearest distance and returned with document ID, public filename, page number, chunk index, content, distance, and derived cosine similarity. The default `RETRIEVAL_TOP_K` is 5 and requests are bounded to at most 20 results. Query embeddings are validated against the schema-owned 1536 dimensions before SQL execution.
 
 ### RAG prompt builder
 Builds a provider-neutral grounded prompt from a user question and retrieved document context. Each context block is labeled with public document name and page number, while citation metadata is kept separately from generated text. Document content is explicitly treated as untrusted data rather than instructions, reducing prompt-injection risk from uploaded PDFs. Empty retrieval is represented explicitly so later orchestration can choose a safe insufficient-context path.
@@ -163,7 +163,7 @@ The window settings are centralized and validated so overlap must be smaller tha
 
 ## 9. Retrieval strategy
 
-Initial retrieval uses semantic vector similarity with roughly top-5 chunks and no reranker. Hybrid search, reranking, query rewriting, and metadata filtering are future options only if evaluation justifies them.
+Initial retrieval uses pgvector cosine distance with top-5 chunks by default, bounded to 20, and no reranker. Only processed documents participate, and query embedding dimensionality is checked before SQL execution. Hybrid search, reranking, query rewriting, and additional metadata filtering are future options only if evaluation justifies them.
 
 ## 10. Grounding rules
 
@@ -189,12 +189,13 @@ EMBEDDING_PROVIDER
 EMBEDDING_MODEL
 EMBEDDING_TIMEOUT_SECONDS
 OPENAI_API_KEY
+RETRIEVAL_TOP_K
 LLM_PROVIDER
 LLM_MODEL
 LLM_TIMEOUT_SECONDS
 ```
 
-Future variables may include additional generation-provider API keys and `RETRIEVAL_TOP_K`. The embedding vector dimension is intentionally schema-owned rather than runtime-configurable; changing it requires a database migration and a matching ORM update.
+Future variables may include additional generation-provider API keys. The embedding vector dimension is intentionally schema-owned rather than runtime-configurable; changing it requires a database migration and a matching ORM update.
 
 Secrets must never be committed.
 

@@ -579,7 +579,7 @@ Deleting a document removes it from the application and from future retrieval.
 
 ## API-14 — Vector similarity retrieval
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** API-04, API-10, API-11
 
