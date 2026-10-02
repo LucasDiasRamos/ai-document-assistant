@@ -163,3 +163,34 @@ def test_generation_receives_exactly_developer_and_user_messages() -> None:
     ]
     assert len(generation.messages) == 2
     assert db.rollback_count == 1
+
+
+
+def test_database_read_transaction_is_released_before_generation() -> None:
+    db = FakeSession(
+        [
+            SimpleNamespace(
+                chunk_id=1,
+                document_id=10,
+                document="manual.pdf",
+                page_number=7,
+                chunk_index=0,
+                content="Known context.",
+                distance=0.05,
+            )
+        ]
+    )
+
+    class TransactionAwareGenerationProvider:
+        def generate(self, messages):
+            assert db.rollback_count == 1
+            return "Grounded answer"
+
+    result = answer_question(
+        db,
+        "Known question",
+        FakeEmbeddingProvider(),
+        TransactionAwareGenerationProvider(),
+    )
+
+    assert result.answer == "Grounded answer"
