@@ -1,16 +1,41 @@
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pymupdf
 import pytest
 from fastapi.testclient import TestClient
 
+from app.api.dependencies import get_embedding_provider_dependency
 from app.core.config import settings
 from app.core.database import get_db
 from app.main import app
+from app.models.document_chunk import EMBEDDING_DIMENSION
 from app.services.storage_service import StorageService, get_storage_service
 
 
-PDF_BYTES = b"%PDF-1.7\nportfolio-test\n%%EOF"
+def make_pdf_bytes() -> bytes:
+    document = pymupdf.open()
+    page = document.new_page()
+    page.insert_text((72, 72), "Portfolio document content")
+    data = document.tobytes()
+    document.close()
+    return data
+
+
+PDF_BYTES = make_pdf_bytes()
+
+
+class FakeEmbeddingProvider:
+    dimension = EMBEDDING_DIMENSION
+
+    def embed_text(self, text: str) -> list[float]:
+        return self.embed_batch([text])[0]
+
+    def embed_batch(self, texts):
+        return [
+            [float(index + 1)] * EMBEDDING_DIMENSION
+            for index, _ in enumerate(texts)
+        ]
 
 
 class FakeSession:
@@ -46,6 +71,9 @@ def client(tmp_path: Path):
 
     app.dependency_overrides[get_db] = lambda: db
     app.dependency_overrides[get_storage_service] = lambda: storage
+    app.dependency_overrides[get_embedding_provider_dependency] = (
+        lambda: FakeEmbeddingProvider()
+    )
 
     with TestClient(app) as test_client:
         yield test_client
@@ -69,7 +97,7 @@ def test_upload_pdf_returns_created_document(client: TestClient) -> None:
     payload = response.json()
     assert payload["id"] == 1
     assert payload["original_filename"] == "manual.pdf"
-    assert payload["status"] == "uploaded"
+    assert payload["status"] == "processed"
     assert "filename" not in payload
     assert "file_path" not in payload
 

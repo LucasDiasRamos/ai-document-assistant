@@ -72,7 +72,10 @@ The MVP stores source PDFs under the configured `STORAGE_ROOT`. Client filenames
 Extracts text page by page using plain-text extraction with reading-order sorting. Page numbers are converted to 1-based values for user-facing citations, blank pages are preserved with empty text, and corrupt/non-PDF/password-protected files raise controlled extraction errors. OCR is intentionally outside the MVP.
 
 ### Embedding service
-Converts text into vectors behind a replaceable provider boundary. The MVP defines a provider protocol with single-text and batch embedding methods and uses OpenAI as the first concrete implementation. The default model is `text-embedding-3-small`, with the requested output dimension fixed to the database schema's `1536`. Provider responses are validated before persistence so dimension mismatches cannot silently reach pgvector.
+Converts text into vectors behind a replaceable provider boundary. The MVP defines a provider protocol with single-text and batch embedding methods and uses OpenAI as the first concrete implementation. The default model is `text-embedding-3-small`, with the requested output dimension fixed to the database schema's `1536`. Provider responses are validated before persistence so dimension mismatches cannot silently reach pgvector. Large embedding workloads are partitioned into bounded provider requests while preserving global result order.
+
+### Ingestion orchestrator
+Coordinates PDF extraction, page-aware chunking, batch embedding generation, chunk persistence, and document status transitions. The MVP invokes this synchronously after a successful upload. Processing state is persisted before external work begins; chunks and the final `processed` state are committed together. During reprocessing, existing chunk deletions are flushed before replacement inserts to avoid unique-index collisions. Failures roll back incomplete work, retain existing chunks during failed reprocessing, persist a user-safe `failed` message, and log only safe technical diagnostics such as document ID and exception types.
 
 ### Retrieval service
 Embeds the user question, queries pgvector, ranks relevant chunks, and returns top-k chunks with source metadata.
@@ -114,13 +117,13 @@ Relationship: `Document 1 ---- N DocumentChunk`.
 1. Client uploads PDF.
 2. ASGI middleware bounds the incoming request body before multipart parsing/spooling. The service then validates the exact file size, filename length, extension, MIME type, PDF signature, and non-empty content.
 3. File is stored locally for the MVP. If database persistence fails, the stored file is removed before the error is propagated.
-4. Document record is created.
-5. PyMuPDF extracts text page by page and preserves 1-based page metadata.
-6. Text is split into overlapping chunks.
-7. Each chunk receives metadata.
-8. Embeddings are generated.
-9. Chunks and vectors are persisted in PostgreSQL.
-10. Document status becomes processed.
+4. Document record is created with `uploaded` status.
+5. The ingestion orchestrator persists `processing`.
+6. PyMuPDF extracts text page by page and preserves 1-based page metadata.
+7. Text is split into overlapping chunks.
+8. Embeddings are generated in batch and validated against the schema dimension.
+9. Chunks/vectors and the final `processed` status are committed together.
+10. Any extraction, chunking, embedding, or persistence failure rolls back incomplete work and records `failed` with a safe message.
 
 Important metadata: document ID, original filename, page number, and chunk index.
 

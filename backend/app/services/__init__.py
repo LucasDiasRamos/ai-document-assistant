@@ -10,6 +10,13 @@ from app.services.embedding_service import (
     OpenAIEmbeddingProvider,
     build_embedding_provider,
 )
+from app.services.ingestion_service import (
+    DocumentFailureStateError,
+    DocumentIngestionError,
+    InvalidEmbeddingBatchError,
+    NoExtractableTextError,
+    process_document,
+)
 from app.services.pdf_service import (
     EncryptedPdfError,
     ExtractedPage,
@@ -27,6 +34,8 @@ from app.services.storage_service import (
 )
 
 __all__ = [
+    "DocumentFailureStateError",
+    "DocumentIngestionError",
     "EmbeddingConfigurationError",
     "EmbeddingDimensionError",
     "EmbeddingError",
@@ -36,7 +45,9 @@ __all__ = [
     "EmbeddingResponseError",
     "EncryptedPdfError",
     "ExtractedPage",
+    "InvalidEmbeddingBatchError",
     "InvalidPdfError",
+    "NoExtractableTextError",
     "OpenAIEmbeddingProvider",
     "PdfExtractionError",
     "PdfNotFoundError",
@@ -48,5 +59,6 @@ __all__ = [
     "build_embedding_provider",
     "chunk_pages",
     "extract_pdf_pages",
+    "process_document",
     "storage_service",
 ]
