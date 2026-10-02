@@ -10,6 +10,7 @@ from app.services.generation_service import (
     GenerationProvider,
 )
 from app.services.rag_prompt_service import (
+    INSUFFICIENT_CONTEXT_MESSAGE,
     RAGContextChunk,
     RAGSource,
     build_grounded_prompt,
@@ -34,6 +35,13 @@ def answer_question(
         question,
         embedding_provider,
     )
+    db.rollback()
+
+    if not retrieved_chunks:
+        return RAGAnswer(
+            answer=INSUFFICIENT_CONTEXT_MESSAGE,
+            sources=(),
+        )
 
     prompt = build_grounded_prompt(
         question,
