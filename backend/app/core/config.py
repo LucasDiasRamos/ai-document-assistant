@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     embedding_provider: str = "openai"
     embedding_model: str = "text-embedding-3-small"
     embedding_timeout_seconds: float = Field(default=30.0, gt=0)
+    llm_provider: str = "openai"
+    llm_model: str
+    llm_timeout_seconds: float = Field(default=60.0, gt=0)
     openai_api_key: SecretStr | None = None
 
     model_config = SettingsConfigDict(
@@ -26,6 +29,8 @@ class Settings(BaseSettings):
     def validate_chunk_window(self) -> "Settings":
         if self.chunk_overlap >= self.chunk_size:
             raise ValueError("CHUNK_OVERLAP must be smaller than CHUNK_SIZE")
+        if not self.llm_model.strip():
+            raise ValueError("LLM_MODEL must not be empty")
         return self
 
 

@@ -616,7 +616,7 @@ A question about known document content returns the expected supporting chunks n
 
 ## API-15 — LLM provider abstraction
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** API-01
 

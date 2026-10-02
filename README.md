@@ -33,13 +33,13 @@ Implemented:
 - Document list and detail endpoints with public-safe metadata
 - Document deletion with database cascade and local-file cleanup
 - Grounded RAG prompt/context builder with source metadata separated from generated text
-- Storage, upload, extraction, chunking, embedding, ingestion, document-read, deletion, and RAG prompt tests
+- Provider-neutral LLM generation abstraction using the OpenAI Responses API
+- Storage, upload, extraction, chunking, embedding, ingestion, document-read, deletion, RAG prompt, and generation tests
 - Initial project documentation
 
 Planned next:
 
 - pgvector similarity search
-- LLM provider abstraction
 - RAG answer generation with source citations
 - React frontend
 
@@ -80,11 +80,12 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full architecture and [PRD.md](PR
 - pgvector
 - PyMuPDF
 - OpenAI embeddings
+- OpenAI Responses API
 - Docker / Docker Compose
 - Alembic
 - Pytest
 
-The frontend and generation/LLM provider will be added in later milestones.
+The frontend will be added in later milestones.
 
 ## Local setup
 
@@ -128,7 +129,7 @@ pip install -r requirements.txt
 
 ### 5. Configure environment variables
 
-Copy `.env.example` to `backend/.env`.
+Copy `.env.example` to `backend/.env`, then set `LLM_MODEL` to a model available to your OpenAI API project before starting the application.
 
 ### 6. Apply database migrations
 
