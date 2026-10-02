@@ -650,7 +650,7 @@ RAG logic can generate answers without being coupled directly to an LLM vendor S
 
 ## API-16 — RAG prompt and context builder
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** API-14, API-15
 
