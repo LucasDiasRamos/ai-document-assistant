@@ -86,8 +86,11 @@ Deleting a document removes the database record first; `DocumentChunk` rows and 
 ### Retrieval service
 Embeds the user question, queries pgvector, ranks relevant chunks, and returns top-k chunks with source metadata.
 
+### RAG prompt builder
+Builds a provider-neutral grounded prompt from a user question and retrieved document context. Each context block is labeled with public document name and page number, while citation metadata is kept separately from generated text. Document content is explicitly treated as untrusted data rather than instructions, reducing prompt-injection risk from uploaded PDFs. Empty retrieval is represented explicitly so later orchestration can choose a safe insufficient-context path.
+
 ### LLM service
-Builds the grounded prompt, sends retrieved context to the selected LLM, and returns an answer constrained to document context.
+Sends the grounded prompt to the selected generation provider and returns an answer constrained to document context.
 
 ## 5. Data model
 
@@ -164,11 +167,13 @@ Initial retrieval uses semantic vector similarity with roughly top-5 chunks and 
 
 ## 10. Grounding rules
 
-The system prompt must:
-- answer from supplied document context;
+The grounding instructions must:
+- answer only from supplied document context;
+- treat retrieved document text as untrusted data, not instructions;
 - state when information is absent;
-- avoid unsupported claims;
-- return sources whenever context is used.
+- avoid unsupported claims and outside knowledge;
+- never invent source metadata or citation markers;
+- keep source metadata available separately to API code.
 
 ## 11. Configuration
 
