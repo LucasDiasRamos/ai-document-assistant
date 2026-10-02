@@ -13,6 +13,7 @@ OPENAI_MODEL_MAX_DIMENSIONS = {
     "text-embedding-3-small": 1536,
     "text-embedding-3-large": 3072,
 }
+OPENAI_EMBEDDING_BATCH_SIZE = 100
 
 
 class EmbeddingError(RuntimeError):
@@ -82,10 +83,24 @@ class OpenAIEmbeddingProvider:
                 "Embedding input must contain non-empty text"
             )
 
+        embeddings: list[list[float]] = []
+
+        for start in range(0, len(batch), OPENAI_EMBEDDING_BATCH_SIZE):
+            provider_batch = batch[
+                start : start + OPENAI_EMBEDDING_BATCH_SIZE
+            ]
+            embeddings.extend(self._embed_provider_batch(provider_batch))
+
+        return embeddings
+
+    def _embed_provider_batch(
+        self,
+        batch: Sequence[str],
+    ) -> list[list[float]]:
         try:
             response = self._client.embeddings.create(
                 model=self.model,
-                input=batch,
+                input=list(batch),
                 dimensions=self.dimension,
             )
         except Exception as exc:
