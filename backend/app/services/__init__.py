@@ -46,6 +46,7 @@ from app.services.retrieval_service import (
     RetrievedChunk,
     retrieve_relevant_chunks,
 )
+from app.services.rag_service import RAGAnswer, answer_question
 from app.services.rag_prompt_service import (
     GROUNDING_INSTRUCTIONS,
     INSUFFICIENT_CONTEXT_MESSAGE,
@@ -89,6 +90,7 @@ __all__ = [
     "InvalidPdfError",
     "MAX_RETRIEVAL_TOP_K",
     "NoExtractableTextError",
+    "RAGAnswer",
     "RAGContextChunk",
     "RAGPromptError",
     "RAGSource",
@@ -105,6 +107,7 @@ __all__ = [
     "StoredFile",
     "TextChunk",
     "UnsafeStoragePathError",
+    "answer_question",
     "build_embedding_provider",
     "build_generation_provider",
     "build_grounded_prompt",
