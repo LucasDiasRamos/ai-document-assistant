@@ -31,12 +31,12 @@ Implemented:
 - Synchronous document ingestion orchestration from upload through persisted chunks
 - Safe processing/failed/processed status transitions
 - Document list and detail endpoints with public-safe metadata
-- Storage, upload, extraction, chunking, embedding, ingestion, and document-read tests
+- Document deletion with database cascade and local-file cleanup
+- Storage, upload, extraction, chunking, embedding, ingestion, document-read, and deletion tests
 - Initial project documentation
 
 Planned next:
 
-- Document deletion
 - pgvector similarity search
 - RAG answer generation with source citations
 - React frontend
