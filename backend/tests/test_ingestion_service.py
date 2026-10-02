@@ -342,8 +342,10 @@ def test_ingestion_failure_logs_safe_technical_context(
     record = next(
         record
         for record in caplog.records
-        if record.message == "Document ingestion failed"
+        if record.getMessage().startswith("Document ingestion failed")
     )
     assert record.document_id == document.id
     assert "EmbeddingProviderError" in record.error_types
+    assert f"document_id={document.id}" in record.getMessage()
+    assert "EmbeddingProviderError" in record.getMessage()
     assert "provider-secret-detail" not in caplog.text
