@@ -16,9 +16,13 @@ class FakeResult:
 class FakeSession:
     def __init__(self, rows) -> None:
         self.rows = rows
+        self.rollback_count = 0
 
     def execute(self, statement):
         return FakeResult(self.rows)
+
+    def rollback(self) -> None:
+        self.rollback_count += 1
 
 
 class FakeEmbeddingProvider:
@@ -83,6 +87,7 @@ def test_answer_question_composes_retrieval_prompt_and_generation() -> None:
     )
 
     assert result.answer == "The warranty is 24 months."
+    assert db.rollback_count == 1
     assert [
         (source.document_id, source.document, source.page_number)
         for source in result.sources
@@ -104,15 +109,44 @@ def test_answer_question_composes_retrieval_prompt_and_generation() -> None:
     assert "[Source: manual.pdf | Page: 7]" in generation.messages[1].content
 
 
-def test_generation_receives_exactly_developer_and_user_messages() -> None:
+def test_empty_context_short_circuits_generation() -> None:
     db = FakeSession([])
-    generation = FakeGenerationProvider(
+    generation = FakeGenerationProvider("fabricated answer")
+
+    result = answer_question(
+        db,
+        "Unknown question",
+        FakeEmbeddingProvider(),
+        generation,
+    )
+
+    assert result.answer == (
         "I could not find that information in the uploaded documents."
     )
+    assert result.sources == ()
+    assert generation.messages is None
+    assert db.rollback_count == 1
+
+
+def test_generation_receives_exactly_developer_and_user_messages() -> None:
+    db = FakeSession(
+        [
+            SimpleNamespace(
+                chunk_id=1,
+                document_id=10,
+                document="manual.pdf",
+                page_number=7,
+                chunk_index=0,
+                content="Known context.",
+                distance=0.05,
+            )
+        ]
+    )
+    generation = FakeGenerationProvider("Grounded answer")
 
     answer_question(
         db,
-        "Unknown question",
+        "Known question",
         FakeEmbeddingProvider(),
         generation,
     )
@@ -128,3 +162,4 @@ def test_generation_receives_exactly_developer_and_user_messages() -> None:
         ),
     ]
     assert len(generation.messages) == 2
+    assert db.rollback_count == 1
