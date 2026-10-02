@@ -92,6 +92,9 @@ Builds a provider-neutral grounded prompt from a user question and retrieved doc
 ### LLM service
 Generation is hidden behind a provider-neutral `GenerationProvider` interface. The first implementation uses the OpenAI Responses API. `LLM_MODEL` is required explicitly rather than hardcoded in application code, while provider and timeout remain environment-configurable. Input messages are validated before provider calls, timeout failures are distinguished from other provider failures, and empty provider responses are rejected. Prompt construction remains a separate RAG concern rather than being embedded in the provider layer.
 
+### Chat/RAG orchestration
+`POST /api/chat` composes the retrieval, prompt-building, and generation services. The route accepts a bounded non-empty question, retrieves top-k processed-document chunks, builds the grounded prompt, invokes the generation provider, and returns the answer plus deduplicated document/page sources. Citation data comes from retrieved database metadata rather than model-generated text. Provider failures are mapped to user-safe `503` responses without exposing provider details.
+
 ## 5. Data model
 
 ### Document
@@ -145,7 +148,7 @@ Important metadata: document ID, original filename, page number, and chunk index
 5. Context is assembled with document/page metadata.
 6. LLM receives system rules, context, and question.
 7. Response is generated.
-8. API returns answer and source references.
+8. API returns the generated answer plus deduplicated source references derived from retrieval metadata.
 
 ## 8. Chunking strategy
 
