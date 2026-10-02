@@ -749,7 +749,7 @@ A user can ask a question and receive a grounded answer with traceable citations
 
 ## API-18 — Insufficient-context behavior
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** API-14, API-17
 
