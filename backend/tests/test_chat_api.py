@@ -24,9 +24,13 @@ class FakeResult:
 class FakeSession:
     def __init__(self, rows) -> None:
         self.rows = rows
+        self.rollback_count = 0
 
     def execute(self, statement):
         return FakeResult(self.rows)
+
+    def rollback(self) -> None:
+        self.rollback_count += 1
 
 
 class FakeEmbeddingProvider:
@@ -145,7 +149,19 @@ def test_chat_generation_failure_returns_safe_503() -> None:
         error=GenerationProviderError("secret provider detail")
     )
 
-    with make_client([], provider) as client:
+    rows = [
+        SimpleNamespace(
+            chunk_id=1,
+            document_id=3,
+            document="manual.pdf",
+            page_number=17,
+            chunk_index=0,
+            content="Known supporting context.",
+            distance=0.05,
+        )
+    ]
+
+    with make_client(rows, provider) as client:
         response = client.post(
             "/api/chat",
             json={"question": "Question"},
@@ -156,3 +172,22 @@ def test_chat_generation_failure_returns_safe_503() -> None:
         "Answer generation is temporarily unavailable"
     )
     assert "secret provider detail" not in response.text
+
+
+
+def test_chat_empty_retrieval_returns_stable_answer_without_generation() -> None:
+    provider = FakeGenerationProvider(answer="fabricated answer")
+
+    with make_client([], provider) as client:
+        response = client.post(
+            "/api/chat",
+            json={"question": "Unsupported question"},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "answer": (
+            "I could not find that information in the uploaded documents."
+        ),
+        "sources": [],
+    }
