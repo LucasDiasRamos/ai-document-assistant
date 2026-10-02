@@ -83,11 +83,14 @@ def process_document(
         db.commit()
         db.refresh(document)
     except Exception as exc:
+        error_types = _error_type_chain(exc)
         logger.error(
-            "Document ingestion failed",
+            "Document ingestion failed document_id=%s error_types=%s",
+            document.id,
+            error_types,
             extra={
                 "document_id": document.id,
-                "error_types": _error_type_chain(exc),
+                "error_types": error_types,
             },
         )
         db.rollback()
