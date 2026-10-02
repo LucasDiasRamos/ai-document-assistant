@@ -34,12 +34,12 @@ Implemented:
 - Document deletion with database cascade and local-file cleanup
 - Grounded RAG prompt/context builder with source metadata separated from generated text
 - Provider-neutral LLM generation abstraction using the OpenAI Responses API
-- Storage, upload, extraction, chunking, embedding, ingestion, document-read, deletion, RAG prompt, and generation tests
+- pgvector cosine-similarity retrieval with processed-document filtering
+- Storage, upload, extraction, chunking, embedding, ingestion, document-read, deletion, RAG prompt, generation, and retrieval tests
 - Initial project documentation
 
 Planned next:
 
-- pgvector similarity search
 - RAG answer generation with source citations
 - React frontend
 
