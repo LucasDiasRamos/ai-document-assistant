@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 
 from app.models.document import Document, DocumentStatus
@@ -33,6 +35,7 @@ class FakeSession:
         self.added = []
         self.commits = []
         self.rollback_count = 0
+        self.flush_chunk_counts = []
 
     def add(self, value) -> None:
         self.added.append(value)
@@ -49,6 +52,10 @@ class FakeSession:
 
     def refresh(self, value) -> None:
         return None
+
+    def flush(self) -> None:
+        document = self.added[-1]
+        self.flush_chunk_counts.append(len(document.chunks))
 
     def rollback(self) -> None:
         self.rollback_count += 1
@@ -280,6 +287,7 @@ def test_successful_reprocessing_replaces_existing_chunks() -> None:
         "first chunk",
         "second chunk",
     ]
+    assert db.flush_chunk_counts == [0]
 
 
 def test_failed_reprocessing_keeps_existing_chunks() -> None:
@@ -307,3 +315,35 @@ def test_failed_reprocessing_keeps_existing_chunks() -> None:
 
     assert document.status == DocumentStatus.FAILED
     assert document.chunks == [old_chunk]
+
+
+def test_ingestion_failure_logs_safe_technical_context(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    db = FakeSession()
+    document = make_document()
+    provider = FakeEmbeddingProvider(
+        error=EmbeddingProviderError("provider-secret-detail")
+    )
+
+    with caplog.at_level(
+        logging.ERROR,
+        logger="app.services.ingestion_service",
+    ):
+        with pytest.raises(EmbeddingProviderError):
+            process_document(
+                db,
+                document,
+                provider,
+                page_extractor=extracted_pages,
+                page_chunker=prepared_chunks,
+            )
+
+    record = next(
+        record
+        for record in caplog.records
+        if record.message == "Document ingestion failed"
+    )
+    assert record.document_id == document.id
+    assert "EmbeddingProviderError" in record.error_types
+    assert "provider-secret-detail" not in caplog.text
