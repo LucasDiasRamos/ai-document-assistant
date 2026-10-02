@@ -36,13 +36,14 @@ Implemented:
 - Provider-neutral LLM generation abstraction using the OpenAI Responses API
 - pgvector cosine-similarity retrieval with processed-document filtering
 - Chat/RAG endpoint returning grounded answers with document/page sources
-- Storage, upload, extraction, chunking, embedding, ingestion, document-read, deletion, RAG prompt, generation, retrieval, and chat tests
+- Configurable retrieval-quality threshold that suppresses weak-context generation
+- Storage, upload, extraction, chunking, embedding, ingestion, document-read, deletion, RAG prompt, generation, retrieval, chat, and insufficient-context tests
 - Initial project documentation
 
 Planned next:
 
-- Insufficient-context quality rule
 - React frontend
+- RAG evaluation fixtures and threshold calibration
 
 ## Target architecture
 
