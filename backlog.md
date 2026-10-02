@@ -691,7 +691,7 @@ Generation receives clear, traceable document context and a strict grounding ins
 
 ## API-17 — Chat/RAG endpoint
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** API-14, API-15, API-16
 
