@@ -5,6 +5,11 @@ from app.services.embedding_service import (
     EmbeddingProvider,
     build_embedding_provider,
 )
+from app.services.generation_service import (
+    GenerationConfigurationError,
+    GenerationProvider,
+    build_generation_provider,
+)
 
 
 def get_embedding_provider_dependency() -> EmbeddingProvider:
@@ -15,13 +20,6 @@ def get_embedding_provider_dependency() -> EmbeddingProvider:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Embedding provider is not configured",
         ) from exc
-
-
-from app.services.generation_service import (
-    GenerationConfigurationError,
-    GenerationProvider,
-    build_generation_provider,
-)
 
 
 def get_generation_provider_dependency() -> GenerationProvider:
