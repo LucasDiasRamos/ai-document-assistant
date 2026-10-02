@@ -11,6 +11,7 @@ from app.services.embedding_service import (
     EmbeddingInputError,
     EmbeddingProviderError,
     EmbeddingResponseError,
+    OPENAI_EMBEDDING_BATCH_SIZE,
     OpenAIEmbeddingProvider,
     build_embedding_provider,
 )
@@ -251,3 +252,49 @@ def test_openai_provider_dimension_cannot_be_overridden() -> None:
             client=FakeClient(FakeEmbeddingsAPI()),
             dimension=512,
         )
+
+
+def test_large_batch_is_partitioned_and_preserves_global_order() -> None:
+    total = OPENAI_EMBEDDING_BATCH_SIZE + 7
+
+    class PartitioningEmbeddingsAPI:
+        def __init__(self) -> None:
+            self.calls = []
+
+        def create(self, **kwargs):
+            batch = kwargs["input"]
+            self.calls.append(kwargs)
+            call_offset = sum(
+                len(previous["input"])
+                for previous in self.calls[:-1]
+            )
+            return SimpleNamespace(
+                data=[
+                    SimpleNamespace(
+                        index=index,
+                        embedding=vector(float(call_offset + index)),
+                    )
+                    for index, _ in enumerate(batch)
+                ]
+            )
+
+    api = PartitioningEmbeddingsAPI()
+    provider = OpenAIEmbeddingProvider(
+        model="text-embedding-3-small",
+        api_key="test-key",
+        timeout_seconds=1,
+        client=FakeClient(api),
+    )
+
+    result = provider.embed_batch(
+        [f"text-{index}" for index in range(total)]
+    )
+
+    assert [len(call["input"]) for call in api.calls] == [
+        OPENAI_EMBEDDING_BATCH_SIZE,
+        7,
+    ]
+    assert len(result) == total
+    assert [item[0] for item in result] == [
+        float(index) for index in range(total)
+    ]
