@@ -30,12 +30,12 @@ Implemented:
 - Schema-aligned 1536-dimension embedding validation
 - Synchronous document ingestion orchestration from upload through persisted chunks
 - Safe processing/failed/processed status transitions
-- Storage, upload, extraction, chunking, embedding, and ingestion tests
+- Document list and detail endpoints with public-safe metadata
+- Storage, upload, extraction, chunking, embedding, ingestion, and document-read tests
 - Initial project documentation
 
 Planned next:
 
-- Document listing and inspection
 - Document deletion
 - pgvector similarity search
 - RAG answer generation with source citations

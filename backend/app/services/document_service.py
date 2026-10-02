@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import UploadFile
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -115,3 +116,37 @@ def _validate_upload(upload: UploadFile) -> str:
         raise InvalidPdfSignatureError("Uploaded file is not a valid PDF")
 
     return original_filename
+
+
+
+DEFAULT_DOCUMENT_LIST_LIMIT = 50
+MAX_DOCUMENT_LIST_LIMIT = 100
+
+
+def list_documents(
+    db: Session,
+    *,
+    limit: int = DEFAULT_DOCUMENT_LIST_LIMIT,
+) -> tuple[list[Document], int]:
+    if limit < 1 or limit > MAX_DOCUMENT_LIST_LIMIT:
+        raise ValueError(
+            f"limit must be between 1 and {MAX_DOCUMENT_LIST_LIMIT}"
+        )
+
+    documents = list(
+        db.scalars(
+            select(Document)
+            .order_by(Document.created_at.desc(), Document.id.desc())
+            .limit(limit)
+        ).all()
+    )
+    total = db.scalar(select(func.count(Document.id)))
+
+    return documents, int(total or 0)
+
+
+def get_document_by_id(
+    db: Session,
+    document_id: int,
+) -> Document | None:
+    return db.get(Document, document_id)

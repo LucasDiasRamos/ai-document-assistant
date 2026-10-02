@@ -1,13 +1,33 @@
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from typing import Annotated
+
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_embedding_provider_dependency
 from app.core.database import get_db
-from app.schemas.document import APIError, DocumentUploadResponse
+from app.schemas.document import (
+    APIError,
+    DocumentDetail,
+    DocumentListResponse,
+    DocumentSummary,
+    DocumentUploadResponse,
+)
 from app.services.document_service import (
+    DEFAULT_DOCUMENT_LIST_LIMIT,
+    MAX_DOCUMENT_LIST_LIMIT,
     DocumentTooLargeError,
     DocumentUploadValidationError,
     create_uploaded_document,
+    get_document_by_id,
+    list_documents,
 )
 from app.services.embedding_service import (
     EmbeddingError,
@@ -92,3 +112,48 @@ def upload_document(
         ) from exc
 
     return DocumentUploadResponse.model_validate(document)
+
+
+
+@router.get(
+    "",
+    response_model=DocumentListResponse,
+)
+def read_documents(
+    db: Session = Depends(get_db),
+    limit: Annotated[
+        int,
+        Query(ge=1, le=MAX_DOCUMENT_LIST_LIMIT),
+    ] = DEFAULT_DOCUMENT_LIST_LIMIT,
+) -> DocumentListResponse:
+    documents, total = list_documents(db, limit=limit)
+
+    return DocumentListResponse(
+        documents=[
+            DocumentSummary.model_validate(document)
+            for document in documents
+        ],
+        total=total,
+    )
+
+
+@router.get(
+    "/{document_id}",
+    response_model=DocumentDetail,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": APIError},
+    },
+)
+def read_document(
+    document_id: int,
+    db: Session = Depends(get_db),
+) -> DocumentDetail:
+    document = get_document_by_id(db, document_id)
+
+    if document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    return DocumentDetail.model_validate(document)
