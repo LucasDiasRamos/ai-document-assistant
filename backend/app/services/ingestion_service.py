@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+import logging
 
 from sqlalchemy.orm import Session
 
@@ -13,6 +14,9 @@ from app.services.pdf_service import (
     PdfExtractionError,
     extract_pdf_pages,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentIngestionError(RuntimeError):
@@ -68,7 +72,10 @@ def process_document(
             for chunk, embedding in zip(chunks, embeddings, strict=True)
         ]
 
-        document.chunks.clear()
+        if document.chunks:
+            document.chunks.clear()
+            db.flush()
+
         document.chunks.extend(persisted_chunks)
         document.status = DocumentStatus.PROCESSED
         document.error_message = None
@@ -76,6 +83,13 @@ def process_document(
         db.commit()
         db.refresh(document)
     except Exception as exc:
+        logger.error(
+            "Document ingestion failed",
+            extra={
+                "document_id": document.id,
+                "error_types": _error_type_chain(exc),
+            },
+        )
         db.rollback()
         _mark_failed(db, document, exc)
         raise
@@ -140,3 +154,14 @@ def _safe_failure_message(error: Exception) -> str:
         return "Embedding generation returned invalid data"
 
     return "Document processing failed"
+
+
+def _error_type_chain(error: Exception) -> str:
+    error_types: list[str] = []
+    current: BaseException | None = error
+
+    while current is not None and len(error_types) < 5:
+        error_types.append(type(current).__name__)
+        current = current.__cause__ or current.__context__
+
+    return " <- ".join(error_types)
