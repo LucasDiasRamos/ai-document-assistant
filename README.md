@@ -35,12 +35,13 @@ Implemented:
 - Grounded RAG prompt/context builder with source metadata separated from generated text
 - Provider-neutral LLM generation abstraction using the OpenAI Responses API
 - pgvector cosine-similarity retrieval with processed-document filtering
-- Storage, upload, extraction, chunking, embedding, ingestion, document-read, deletion, RAG prompt, generation, and retrieval tests
+- Chat/RAG endpoint returning grounded answers with document/page sources
+- Storage, upload, extraction, chunking, embedding, ingestion, document-read, deletion, RAG prompt, generation, retrieval, and chat tests
 - Initial project documentation
 
 Planned next:
 
-- RAG answer generation with source citations
+- Insufficient-context quality rule
 - React frontend
 
 ## Target architecture

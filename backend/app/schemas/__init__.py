@@ -1,3 +1,4 @@
+from app.schemas.chat import ChatRequest, ChatResponse, ChatSource
 from app.schemas.document import (
     APIError,
     DocumentDetail,
@@ -9,6 +10,9 @@ from app.schemas.document import (
 
 __all__ = [
     "APIError",
+    "ChatRequest",
+    "ChatResponse",
+    "ChatSource",
     "DocumentDetail",
     "DocumentListResponse",
     "DocumentProcessingStatus",
