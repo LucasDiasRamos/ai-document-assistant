@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import logging
 
 from fastapi import UploadFile
 from sqlalchemy import func, select
@@ -13,6 +14,9 @@ from app.models.document import (
     DocumentStatus,
 )
 from app.services.storage_service import StorageService, storage_service
+
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentUploadValidationError(ValueError):
@@ -36,6 +40,14 @@ class InvalidPdfSignatureError(DocumentUploadValidationError):
 
 
 class DocumentCleanupError(RuntimeError):
+    pass
+
+
+class DocumentDeleteError(RuntimeError):
+    pass
+
+
+class DocumentFileCleanupError(DocumentDeleteError):
     pass
 
 
@@ -150,3 +162,39 @@ def get_document_by_id(
     document_id: int,
 ) -> Document | None:
     return db.get(Document, document_id)
+
+
+
+def delete_document(
+    db: Session,
+    document: Document,
+    *,
+    storage: StorageService = storage_service,
+) -> None:
+    document_id = document.id
+    stored_path = document.file_path
+
+    try:
+        db.delete(document)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+    try:
+        deleted = storage.delete(stored_path)
+    except Exception as exc:
+        logger.error(
+            "Document file cleanup failed document_id=%s error_type=%s",
+            document_id,
+            type(exc).__name__,
+        )
+        raise DocumentFileCleanupError(
+            "Document metadata was deleted but stored file cleanup failed"
+        ) from exc
+
+    if not deleted:
+        logger.info(
+            "Document file already absent during delete document_id=%s",
+            document_id,
+        )
