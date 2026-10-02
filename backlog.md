@@ -543,7 +543,7 @@ The frontend can load uploaded documents and determine whether each is ready, pr
 
 ## API-13 — Delete document and derived data
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** API-04, API-06, API-12
 
