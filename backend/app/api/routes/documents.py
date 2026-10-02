@@ -6,6 +6,7 @@ from fastapi import (
     File,
     HTTPException,
     Query,
+    Response,
     UploadFile,
     status,
 )
@@ -23,9 +24,11 @@ from app.schemas.document import (
 from app.services.document_service import (
     DEFAULT_DOCUMENT_LIST_LIMIT,
     MAX_DOCUMENT_LIST_LIMIT,
+    DocumentFileCleanupError,
     DocumentTooLargeError,
     DocumentUploadValidationError,
     create_uploaded_document,
+    delete_document,
     get_document_by_id,
     list_documents,
 )
@@ -157,3 +160,40 @@ def read_document(
         )
 
     return DocumentDetail.model_validate(document)
+
+
+
+@router.delete(
+    "/{document_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": APIError},
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {"model": APIError},
+    },
+)
+def remove_document(
+    document_id: int,
+    db: Session = Depends(get_db),
+    storage: StorageService = Depends(get_storage_service),
+) -> Response:
+    document = get_document_by_id(db, document_id)
+
+    if document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    try:
+        delete_document(
+            db,
+            document,
+            storage=storage,
+        )
+    except DocumentFileCleanupError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Document deleted, but stored file cleanup failed",
+        ) from exc
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
