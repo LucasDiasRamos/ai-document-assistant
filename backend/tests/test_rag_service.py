@@ -194,3 +194,113 @@ def test_database_read_transaction_is_released_before_generation() -> None:
     )
 
     assert result.answer == "Grounded answer"
+
+
+
+def test_weak_retrieval_short_circuits_generation() -> None:
+    db = FakeSession(
+        [
+            SimpleNamespace(
+                chunk_id=1,
+                document_id=10,
+                document="manual.pdf",
+                page_number=7,
+                chunk_index=0,
+                content="Irrelevant context.",
+                distance=0.45,
+            ),
+            SimpleNamespace(
+                chunk_id=2,
+                document_id=11,
+                document="policy.pdf",
+                page_number=2,
+                chunk_index=0,
+                content="Also irrelevant.",
+                distance=0.60,
+            ),
+        ]
+    )
+    generation = FakeGenerationProvider("fabricated answer")
+
+    result = answer_question(
+        db,
+        "Unrelated question",
+        FakeEmbeddingProvider(),
+        generation,
+    )
+
+    assert result.answer == (
+        "I could not find that information in the uploaded documents."
+    )
+    assert result.sources == ()
+    assert generation.messages is None
+    assert db.rollback_count == 1
+
+
+def test_only_supported_chunks_reach_prompt_and_sources() -> None:
+    db = FakeSession(
+        [
+            SimpleNamespace(
+                chunk_id=1,
+                document_id=10,
+                document="manual.pdf",
+                page_number=7,
+                chunk_index=0,
+                content="Strong supporting context.",
+                distance=0.10,
+            ),
+            SimpleNamespace(
+                chunk_id=2,
+                document_id=11,
+                document="unrelated.pdf",
+                page_number=3,
+                chunk_index=0,
+                content="Weak unrelated context.",
+                distance=0.50,
+            ),
+        ]
+    )
+    generation = FakeGenerationProvider("Grounded answer")
+
+    result = answer_question(
+        db,
+        "Known question",
+        FakeEmbeddingProvider(),
+        generation,
+    )
+
+    assert result.answer == "Grounded answer"
+    assert [
+        (source.document_id, source.document, source.page_number)
+        for source in result.sources
+    ] == [(10, "manual.pdf", 7)]
+    assert "Strong supporting context." in generation.messages[1].content
+    assert "Weak unrelated context." not in generation.messages[1].content
+
+
+def test_similarity_equal_to_threshold_is_accepted() -> None:
+    db = FakeSession(
+        [
+            SimpleNamespace(
+                chunk_id=1,
+                document_id=10,
+                document="manual.pdf",
+                page_number=7,
+                chunk_index=0,
+                content="Boundary supporting context.",
+                distance=0.30,
+            )
+        ]
+    )
+    generation = FakeGenerationProvider("Grounded answer")
+
+    result = answer_question(
+        db,
+        "Known question",
+        FakeEmbeddingProvider(),
+        generation,
+    )
+
+    assert result.answer == "Grounded answer"
+    assert len(result.sources) == 1
+    assert generation.messages is not None
