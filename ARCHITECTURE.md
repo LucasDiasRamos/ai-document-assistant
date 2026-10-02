@@ -78,8 +78,10 @@ Converts text into vectors behind a replaceable provider boundary. The MVP defin
 ### Ingestion orchestrator
 Coordinates PDF extraction, page-aware chunking, batch embedding generation, chunk persistence, and document status transitions. The MVP invokes this synchronously after a successful upload. Processing state is persisted before external work begins; chunks and the final `processed` state are committed together. During reprocessing, existing chunk deletions are flushed before replacement inserts to avoid unique-index collisions. Failures roll back incomplete work, retain existing chunks during failed reprocessing, persist a user-safe `failed` message, and log only safe technical diagnostics such as document ID and exception types.
 
-### Document read API
+### Document read/delete API
 Exposes a bounded document list and single-document detail using public schemas only. The list is ordered newest-first, supports a maximum limit of 100 records per request, and returns the total number of documents. Internal storage filename/path fields are never serialized.
+
+Deleting a document removes the database record first; `DocumentChunk` rows and vectors are removed through the configured database cascade. The source PDF is then deleted through the storage service. An already-missing source file is treated as successful cleanup so a stale filesystem state cannot make the database record undeletable. A database failure rolls back before file cleanup begins, while a genuine post-commit filesystem failure is surfaced and logged as a controlled cleanup error.
 
 ### Retrieval service
 Embeds the user question, queries pgvector, ranks relevant chunks, and returns top-k chunks with source metadata.
