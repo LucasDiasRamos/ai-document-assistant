@@ -38,14 +38,15 @@ Implemented:
 - Chat/RAG endpoint returning grounded answers with document/page sources
 - Configurable retrieval-quality threshold that suppresses weak-context generation
 - React + Vite + TypeScript frontend bootstrap with smoke tests
+- Responsive document + chat application shell for desktop and mobile
 - Frontend API-base configuration validation
 - Storage, upload, extraction, chunking, embedding, ingestion, document-read, deletion, RAG prompt, generation, retrieval, chat, and insufficient-context tests
 - Initial project documentation
 
 Planned next:
 
-- Responsive application shell and layout
-- Frontend API client and document workflows
+- Frontend API client and shared types
+- Document list, upload, and delete workflows
 - RAG evaluation fixtures and threshold calibration
 
 ## Target architecture
