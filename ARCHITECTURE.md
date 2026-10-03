@@ -47,7 +47,9 @@ PostgreSQL + pgvector
 ## 4. Main components
 
 ### Frontend
-The browser client is a React + Vite + TypeScript application under `frontend/`. The initial bootstrap keeps feature boundaries explicit with `components`, `features/documents`, `features/chat`, `services`, `types`, and `styles`. `VITE_API_BASE_URL` is validated at startup as an absolute HTTP(S) URL so configuration failures are detected before API calls begin.
+The browser client is a React + Vite + TypeScript application under `frontend/`. Feature boundaries remain explicit with `components`, `features/documents`, `features/chat`, `services`, `types`, and `styles`. `VITE_API_BASE_URL` is validated at startup as an absolute HTTP(S) URL so configuration failures are detected before API calls begin.
+
+The application shell uses a two-column documents/chat workspace on larger screens and switches to a stacked layout below 860px. The shell includes semantic document/chat landmarks, a keyboard skip link, visible focus states, bounded content widths, and overflow-safe grid sizing. Interactive document/chat behavior is intentionally deferred to the dedicated Web feature tasks.
 
 ### FastAPI
 Exposes REST endpoints, validates requests/responses, coordinates services, and exposes health checks.

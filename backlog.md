@@ -1092,7 +1092,7 @@ The frontend starts locally and renders a minimal application shell.
 
 ## WEB-02 — Application shell and responsive layout
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** WEB-01
 
