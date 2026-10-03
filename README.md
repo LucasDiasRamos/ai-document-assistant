@@ -37,12 +37,15 @@ Implemented:
 - pgvector cosine-similarity retrieval with processed-document filtering
 - Chat/RAG endpoint returning grounded answers with document/page sources
 - Configurable retrieval-quality threshold that suppresses weak-context generation
+- React + Vite + TypeScript frontend bootstrap with smoke tests
+- Frontend API-base configuration validation
 - Storage, upload, extraction, chunking, embedding, ingestion, document-read, deletion, RAG prompt, generation, retrieval, chat, and insufficient-context tests
 - Initial project documentation
 
 Planned next:
 
-- React frontend
+- Responsive application shell and layout
+- Frontend API client and document workflows
 - RAG evaluation fixtures and threshold calibration
 
 ## Target architecture
@@ -83,11 +86,15 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full architecture and [PRD.md](PR
 - PyMuPDF
 - OpenAI embeddings
 - OpenAI Responses API
+- React 19
+- Vite
+- TypeScript
+- Vitest + React Testing Library
 - Docker / Docker Compose
 - Alembic
 - Pytest
 
-The frontend will be added in later milestones.
+The frontend is bootstrapped under `frontend/` and will be built out incrementally through the Web backlog.
 
 ## Local setup
 
@@ -133,7 +140,45 @@ pip install -r requirements.txt
 
 Copy `.env.example` to `backend/.env`, then set `LLM_MODEL` to a model available to your OpenAI API project before starting the application.
 
-### 6. Apply database migrations
+### 6. Configure the frontend
+
+Use Node `20.19+` within the Node 20 line, or Node `22.12+`. Node 21 and Node 22.0–22.11 are intentionally not supported because Vite 8 excludes those runtimes.
+
+From the repository root:
+
+```bash
+cd frontend
+cp .env.example .env
+npm install
+```
+
+The frontend requires:
+
+```env
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+Invalid or missing API base URLs fail during frontend startup with a clear configuration error.
+
+Run the frontend:
+
+```bash
+npm run dev
+```
+
+Run frontend tests:
+
+```bash
+npm run test:run
+```
+
+Create a production build:
+
+```bash
+npm run build
+```
+
+### 7. Apply database migrations
 
 From `backend/`:
 
@@ -143,7 +188,7 @@ alembic upgrade head
 
 This enables pgvector and creates the current persistence schema.
 
-### 7. Run the API
+### 8. Run the API
 
 From `backend/`:
 

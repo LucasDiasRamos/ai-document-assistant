@@ -19,7 +19,7 @@ The MVP prioritizes a small, understandable architecture over framework-heavy ab
 ## 3. High-level architecture
 
 ```text
-Frontend (React/Vite later)
+Frontend (React + Vite + TypeScript)
         |
         v
       FastAPI
@@ -45,6 +45,9 @@ PostgreSQL + pgvector
 ```
 
 ## 4. Main components
+
+### Frontend
+The browser client is a React + Vite + TypeScript application under `frontend/`. The initial bootstrap keeps feature boundaries explicit with `components`, `features/documents`, `features/chat`, `services`, `types`, and `styles`. `VITE_API_BASE_URL` is validated at startup as an absolute HTTP(S) URL so configuration failures are detected before API calls begin.
 
 ### FastAPI
 Exposes REST endpoints, validates requests/responses, coordinates services, and exposes health checks.
