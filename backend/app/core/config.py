@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
     embedding_timeout_seconds: float = Field(default=30.0, gt=0)
     retrieval_top_k: int = Field(default=5, ge=1, le=20)
+    retrieval_min_similarity: float = Field(default=0.70, ge=0.0, le=1.0)
     llm_provider: str = "openai"
     llm_model: str
     llm_timeout_seconds: float = Field(default=60.0, gt=0)

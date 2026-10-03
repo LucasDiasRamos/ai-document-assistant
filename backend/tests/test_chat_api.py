@@ -191,3 +191,33 @@ def test_chat_empty_retrieval_returns_stable_answer_without_generation() -> None
         ),
         "sources": [],
     }
+
+
+
+def test_chat_weak_retrieval_returns_insufficient_context_without_sources() -> None:
+    provider = FakeGenerationProvider(answer="fabricated answer")
+    rows = [
+        SimpleNamespace(
+            chunk_id=1,
+            document_id=3,
+            document="manual.pdf",
+            page_number=17,
+            chunk_index=0,
+            content="Weak unrelated context.",
+            distance=0.45,
+        )
+    ]
+
+    with make_client(rows, provider) as client:
+        response = client.post(
+            "/api/chat",
+            json={"question": "Unrelated question"},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "answer": (
+            "I could not find that information in the uploaded documents."
+        ),
+        "sources": [],
+    }

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.services.embedding_service import EmbeddingProvider
 from app.services.generation_service import (
     GenerationMessage,
@@ -37,7 +38,13 @@ def answer_question(
     )
     db.rollback()
 
-    if not retrieved_chunks:
+    supported_chunks = [
+        chunk
+        for chunk in retrieved_chunks
+        if chunk.similarity >= settings.retrieval_min_similarity
+    ]
+
+    if not supported_chunks:
         return RAGAnswer(
             answer=INSUFFICIENT_CONTEXT_MESSAGE,
             sources=(),
@@ -52,7 +59,7 @@ def answer_question(
                 page_number=chunk.page_number,
                 content=chunk.content,
             )
-            for chunk in retrieved_chunks
+            for chunk in supported_chunks
         ],
     )
 

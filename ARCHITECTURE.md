@@ -93,7 +93,7 @@ Builds a provider-neutral grounded prompt from a user question and retrieved doc
 Generation is hidden behind a provider-neutral `GenerationProvider` interface. The first implementation uses the OpenAI Responses API. `LLM_MODEL` is required explicitly rather than hardcoded in application code, while provider and timeout remain environment-configurable. Input messages are validated before provider calls, timeout failures are distinguished from other provider failures, and empty provider responses are rejected. Prompt construction remains a separate RAG concern rather than being embedded in the provider layer.
 
 ### Chat/RAG orchestration
-`POST /api/chat` composes the retrieval, prompt-building, and generation services. The route accepts a bounded non-empty question, retrieves top-k processed-document chunks, builds the grounded prompt, invokes the generation provider, and returns the answer plus deduplicated document/page sources. Citation data comes from retrieved database metadata rather than model-generated text. After retrieval is materialized, the read transaction is rolled back before any external generation request so database connections are not held during LLM latency. If retrieval returns no chunks, generation is skipped entirely and the stable insufficient-context response is returned with no sources. Provider failures are mapped to user-safe `503` responses without exposing provider details.
+`POST /api/chat` composes the retrieval, prompt-building, and generation services. The route accepts a bounded non-empty question, retrieves top-k processed-document chunks, filters them by the configured minimum cosine similarity, builds the grounded prompt from only accepted chunks, invokes the generation provider, and returns the answer plus deduplicated document/page sources. Citation data comes from retrieved database metadata rather than model-generated text. After retrieval is materialized, the read transaction is rolled back before any external generation request so database connections are not held during LLM latency. If retrieval returns no chunks or every retrieved chunk falls below the quality threshold, generation is skipped entirely and the stable insufficient-context response is returned with no sources. Provider failures are mapped to user-safe `503` responses without exposing provider details.
 
 ## 5. Data model
 
@@ -166,7 +166,7 @@ The window settings are centralized and validated so overlap must be smaller tha
 
 ## 9. Retrieval strategy
 
-Initial retrieval uses pgvector cosine distance with top-5 chunks by default, bounded to 20, and no reranker. Only processed documents participate, and query embedding dimensionality is checked before SQL execution. Hybrid search, reranking, query rewriting, and additional metadata filtering are future options only if evaluation justifies them.
+Initial retrieval uses pgvector cosine distance with top-5 chunks by default, bounded to 20, and no reranker. Only processed documents participate, and query embedding dimensionality is checked before SQL execution. The RAG layer currently accepts only chunks with cosine similarity >= `RETRIEVAL_MIN_SIMILARITY`, defaulting to 0.70. This is an explicit MVP heuristic, not a universal semantic-relevance constant; API-22 evaluation fixtures should calibrate it against known supported and unsupported questions. Hybrid search, reranking, query rewriting, and additional metadata filtering are future options only if evaluation justifies them.
 
 ## 10. Grounding rules
 
@@ -193,6 +193,7 @@ EMBEDDING_MODEL
 EMBEDDING_TIMEOUT_SECONDS
 OPENAI_API_KEY
 RETRIEVAL_TOP_K
+RETRIEVAL_MIN_SIMILARITY
 LLM_PROVIDER
 LLM_MODEL
 LLM_TIMEOUT_SECONDS
