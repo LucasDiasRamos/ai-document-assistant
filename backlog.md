@@ -1056,7 +1056,7 @@ A public HTTPS API supports the portfolio demo.
 
 ## WEB-01 — Frontend bootstrap
 
-**Status:** Todo
+**Status:** Done
 
 ### What
 
