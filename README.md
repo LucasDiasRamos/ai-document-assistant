@@ -142,6 +142,8 @@ Copy `.env.example` to `backend/.env`, then set `LLM_MODEL` to a model available
 
 ### 6. Configure the frontend
 
+Use Node `20.19+` within the Node 20 line, or Node `22.12+`. Node 21 and Node 22.0–22.11 are intentionally not supported because Vite 8 excludes those runtimes.
+
 From the repository root:
 
 ```bash
