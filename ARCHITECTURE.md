@@ -47,11 +47,11 @@ PostgreSQL + pgvector
 ## 4. Main components
 
 ### Frontend
-The browser client is a React + Vite + TypeScript application under `frontend/`. Feature boundaries remain explicit with `components`, `features/documents`, `features/chat`, `services`, `types`, and `styles`. `VITE_API_BASE_URL` is validated at startup as an absolute HTTP(S) URL so configuration failures are detected before API calls begin.
+The browser client is a React + Vite + TypeScript application under `frontend/`. Feature boundaries remain explicit with `components`, `features/documents`, `features/chat`, `services`, `types`, and `styles`. `VITE_API_BASE_URL` accepts either a same-origin root-relative API path or an absolute HTTP(S) API root and is validated at startup so configuration failures are detected before API calls begin. Local development uses `/api`, which Vite proxies to `http://localhost:8000` to avoid browser CORS requirements.
 
 The application shell uses a two-column documents/chat workspace on larger screens and switches to a stacked layout below 860px. The shell includes semantic document/chat landmarks, a keyboard skip link, visible focus states, bounded content widths, and overflow-safe grid sizing.
 
-Frontend HTTP access is centralized in a typed API client rather than scattered across components. Shared TypeScript contracts mirror the current FastAPI document and chat response schemas. The client exposes list/upload/delete/chat methods, applies operation-appropriate request timeouts, supports caller cancellation, leaves multipart boundaries to the browser, handles 204 responses without JSON parsing, and converts HTTP/network/timeout/cancellation/invalid-response failures into a predictable `ApiClientError` shape.
+Frontend HTTP access is centralized in a typed API client rather than scattered across components. Shared TypeScript contracts mirror the current FastAPI document and chat response schemas. The client exposes list/upload/delete/chat methods, applies operation-appropriate request timeouts, supports caller cancellation, leaves multipart boundaries to the browser, handles 204 responses without JSON parsing, and converts HTTP/network/timeout/cancellation/invalid-response failures into a predictable `ApiClientError` shape. Standard FastAPI 422 validation arrays are normalized into readable messages while preserving field location, validation type, and message for the UI.
 
 ### FastAPI
 Exposes REST endpoints, validates requests/responses, coordinates services, and exposes health checks.
