@@ -1,4 +1,4 @@
-import { apiBaseUrl } from "../config/runtime";
+import { resolveApiBaseUrl } from "../config/env";
 import type {
   ApiErrorResponse,
   ChatRequest,
@@ -16,7 +16,8 @@ export type ApiClientErrorKind =
   | "network"
   | "timeout"
   | "cancelled"
-  | "invalid_response";
+  | "invalid_response"
+  | "configuration";
 
 export class ApiClientError extends Error {
   readonly kind: ApiClientErrorKind;
@@ -152,9 +153,11 @@ async function parseJsonResponse<T>(response: Response): Promise<T> {
 }
 
 export function createApiClient(
-  baseUrl: string = apiBaseUrl,
+  baseUrl?: string,
 ): ApiClient {
-  const normalizedBaseUrl = baseUrl.replace(/\/+$/, "");
+  const normalizedBaseUrl = (
+    baseUrl ?? resolveApiBaseUrl(import.meta.env)
+  ).replace(/\/+$/, "");
 
   async function request<T>(
     path: string,
@@ -167,7 +170,7 @@ export function createApiClient(
     if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
       throw new ApiClientError(
         "Request timeout must be greater than zero",
-        { kind: "network" },
+        { kind: "configuration" },
       );
     }
 
@@ -296,4 +299,12 @@ export function createApiClient(
   };
 }
 
-export const apiClient = createApiClient();
+let defaultApiClient: ApiClient | null = null;
+
+export function getApiClient(): ApiClient {
+  if (defaultApiClient === null) {
+    defaultApiClient = createApiClient();
+  }
+
+  return defaultApiClient;
+}
