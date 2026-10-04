@@ -262,8 +262,9 @@ export function createApiClient(
           body,
         },
         {
-          timeoutMs: UPLOAD_REQUEST_TIMEOUT_MS,
           ...options,
+          timeoutMs:
+            options.timeoutMs ?? UPLOAD_REQUEST_TIMEOUT_MS,
         },
       );
     },
@@ -293,8 +294,9 @@ export function createApiClient(
           body: JSON.stringify(chatRequest),
         },
         {
-          timeoutMs: CHAT_REQUEST_TIMEOUT_MS,
           ...options,
+          timeoutMs:
+            options.timeoutMs ?? CHAT_REQUEST_TIMEOUT_MS,
         },
       );
     },
