@@ -155,9 +155,11 @@ async function parseJsonResponse<T>(response: Response): Promise<T> {
 export function createApiClient(
   baseUrl?: string,
 ): ApiClient {
-  const normalizedBaseUrl = (
-    baseUrl ?? resolveApiBaseUrl(import.meta.env)
-  ).replace(/\/+$/, "");
+  const normalizedBaseUrl = resolveApiBaseUrl(
+    baseUrl === undefined
+      ? import.meta.env
+      : { VITE_API_BASE_URL: baseUrl },
+  );
 
   async function request<T>(
     path: string,
