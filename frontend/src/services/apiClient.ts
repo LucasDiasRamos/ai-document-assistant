@@ -1,6 +1,7 @@
 import { resolveApiBaseUrl } from "../config/env";
 import type {
   ApiErrorResponse,
+  ApiValidationIssue,
   ChatRequest,
   ChatResponse,
   DocumentListResponse,
@@ -23,6 +24,7 @@ export class ApiClientError extends Error {
   readonly kind: ApiClientErrorKind;
   readonly status: number | null;
   readonly code: string | null;
+  readonly validationIssues: ApiValidationIssue[];
 
   constructor(
     message: string,
@@ -30,6 +32,7 @@ export class ApiClientError extends Error {
       kind: ApiClientErrorKind;
       status?: number | null;
       code?: string | null;
+      validationIssues?: ApiValidationIssue[];
       cause?: unknown;
     },
   ) {
@@ -38,6 +41,7 @@ export class ApiClientError extends Error {
     this.kind = options.kind;
     this.status = options.status ?? null;
     this.code = options.code ?? null;
+    this.validationIssues = options.validationIssues ?? [];
   }
 }
 
@@ -109,15 +113,74 @@ function createRequestState(
   };
 }
 
-async function parseApiError(response: Response): Promise<ApiErrorResponse> {
+type ParsedApiError = ApiErrorResponse & {
+  validationIssues: ApiValidationIssue[];
+};
+
+function normalizeValidationIssues(detail: unknown): ApiValidationIssue[] {
+  if (!Array.isArray(detail)) {
+    return [];
+  }
+
+  return detail.flatMap((item) => {
+    if (
+      typeof item !== "object" ||
+      item === null ||
+      !("msg" in item) ||
+      typeof item.msg !== "string"
+    ) {
+      return [];
+    }
+
+    const location =
+      "loc" in item && Array.isArray(item.loc)
+        ? item.loc.filter(
+            (part): part is string | number =>
+              typeof part === "string" || typeof part === "number",
+          )
+        : [];
+
+    const type =
+      "type" in item && typeof item.type === "string"
+        ? item.type
+        : null;
+
+    return [
+      {
+        type,
+        location,
+        message: item.msg,
+      },
+    ];
+  });
+}
+
+function validationSummary(issues: ApiValidationIssue[]): string {
+  if (issues.length === 0) {
+    return "Request validation failed";
+  }
+
+  return issues
+    .map((issue) => {
+      const location = issue.location
+        .filter((part) => part !== "body" && part !== "query")
+        .join(".");
+
+      return location
+        ? `${location}: ${issue.message}`
+        : issue.message;
+    })
+    .join("; ");
+}
+
+async function parseApiError(response: Response): Promise<ParsedApiError> {
   try {
     const body: unknown = await response.json();
 
     if (
       typeof body === "object" &&
       body !== null &&
-      "detail" in body &&
-      typeof body.detail === "string"
+      "detail" in body
     ) {
       const code =
         "code" in body &&
@@ -125,10 +188,23 @@ async function parseApiError(response: Response): Promise<ApiErrorResponse> {
           ? body.code
           : null;
 
-      return {
-        detail: body.detail,
-        code,
-      };
+      if (typeof body.detail === "string") {
+        return {
+          detail: body.detail,
+          code,
+          validationIssues: [],
+        };
+      }
+
+      const validationIssues = normalizeValidationIssues(body.detail);
+
+      if (validationIssues.length > 0) {
+        return {
+          detail: validationSummary(validationIssues),
+          code,
+          validationIssues,
+        };
+      }
     }
   } catch {
     // Fall through to a status-based message.
@@ -137,6 +213,7 @@ async function parseApiError(response: Response): Promise<ApiErrorResponse> {
   return {
     detail: `Request failed with status ${response.status}`,
     code: null,
+    validationIssues: [],
   };
 }
 
@@ -194,6 +271,7 @@ export function createApiClient(
           kind: "http",
           status: response.status,
           code: errorBody.code ?? null,
+          validationIssues: errorBody.validationIssues,
         });
       }
 
@@ -237,7 +315,7 @@ export function createApiClient(
       });
 
       return request<DocumentListResponse>(
-        `/api/documents?${params.toString()}`,
+        `/documents?${params.toString()}`,
         {
           method: "GET",
           headers: {
@@ -253,7 +331,7 @@ export function createApiClient(
       body.append("file", file);
 
       return request<DocumentUploadResponse>(
-        "/api/documents",
+        "/documents",
         {
           method: "POST",
           headers: {
@@ -271,7 +349,7 @@ export function createApiClient(
 
     async deleteDocument(documentId, options = {}) {
       await request<void>(
-        `/api/documents/${documentId}`,
+        `/documents/${documentId}`,
         {
           method: "DELETE",
           headers: {
@@ -284,7 +362,7 @@ export function createApiClient(
 
     async sendChat(chatRequest, options = {}) {
       return request<ChatResponse>(
-        "/api/chat",
+        "/chat",
         {
           method: "POST",
           headers: {
