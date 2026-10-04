@@ -43,7 +43,7 @@ describe("ApiClient", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const client = createApiClient("http://localhost:8000/");
+    const client = createApiClient("http://localhost:8000/api/");
     const result = await client.listDocuments(25);
 
     expect(result.total).toBe(1);
@@ -54,6 +54,80 @@ describe("ApiClient", () => {
         method: "GET",
       }),
     );
+  });
+
+
+  it("uses the same-origin API root without duplicating the prefix", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        documents: [],
+        total: 0,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createApiClient("/api");
+
+    await client.listDocuments();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/documents?limit=50",
+      expect.objectContaining({
+        method: "GET",
+      }),
+    );
+  });
+
+  it("preserves FastAPI validation issue details", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse(
+          {
+            detail: [
+              {
+                type: "string_too_short",
+                loc: ["body", "question"],
+                msg: "String should have at least 1 character",
+                input: "",
+              },
+              {
+                type: "less_than_equal",
+                loc: ["query", "limit"],
+                msg: "Input should be less than or equal to 100",
+                input: 101,
+              },
+            ],
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+
+    const client = createApiClient("/api");
+
+    await expect(
+      client.sendChat({ question: "" }),
+    ).rejects.toMatchObject({
+      name: "ApiClientError",
+      kind: "http",
+      status: 422,
+      message:
+        "question: String should have at least 1 character; " +
+        "limit: Input should be less than or equal to 100",
+      validationIssues: [
+        {
+          type: "string_too_short",
+          location: ["body", "question"],
+          message: "String should have at least 1 character",
+        },
+        {
+          type: "less_than_equal",
+          location: ["query", "limit"],
+          message: "Input should be less than or equal to 100",
+        },
+      ],
+    });
   });
 
   it("maps structured API errors to ApiClientError", async () => {
@@ -70,7 +144,7 @@ describe("ApiClient", () => {
       ),
     );
 
-    const client = createApiClient("http://localhost:8000");
+    const client = createApiClient("http://localhost:8000/api");
 
     await expect(
       client.deleteDocument(999),
@@ -89,7 +163,7 @@ describe("ApiClient", () => {
       vi.fn().mockRejectedValue(new TypeError("fetch failed")),
     );
 
-    const client = createApiClient("http://localhost:8000");
+    const client = createApiClient("http://localhost:8000/api");
 
     await expect(client.listDocuments()).rejects.toMatchObject({
       name: "ApiClientError",
@@ -114,7 +188,7 @@ describe("ApiClient", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const client = createApiClient("http://localhost:8000");
+    const client = createApiClient("http://localhost:8000/api");
     const file = new File(["%PDF-1.7"], "guide.pdf", {
       type: "application/pdf",
     });
@@ -142,7 +216,7 @@ describe("ApiClient", () => {
       ),
     );
 
-    const client = createApiClient("http://localhost:8000");
+    const client = createApiClient("http://localhost:8000/api");
 
     await expect(client.deleteDocument(12)).resolves.toBeUndefined();
   });
@@ -162,7 +236,7 @@ describe("ApiClient", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const client = createApiClient("http://localhost:8000");
+    const client = createApiClient("http://localhost:8000/api");
     const result = await client.sendChat({
       question: "What is the warranty?",
     });
@@ -203,7 +277,7 @@ describe("ApiClient", () => {
       ),
     );
 
-    const client = createApiClient("http://localhost:8000");
+    const client = createApiClient("http://localhost:8000/api");
     const request = client.listDocuments(50, { timeoutMs: 25 });
 
     await vi.advanceTimersByTimeAsync(25);
@@ -231,7 +305,7 @@ describe("ApiClient", () => {
     );
 
     const controller = new AbortController();
-    const client = createApiClient("http://localhost:8000");
+    const client = createApiClient("http://localhost:8000/api");
     const request = client.listDocuments(50, {
       signal: controller.signal,
     });
@@ -249,7 +323,7 @@ describe("ApiClient", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
-    const client = createApiClient("http://localhost:8000");
+    const client = createApiClient("http://localhost:8000/api");
 
     await expect(
       client.listDocuments(50, { timeoutMs: 0 }),
@@ -277,7 +351,7 @@ describe("ApiClient", () => {
       ),
     );
 
-    const client = createApiClient("http://localhost:8000");
+    const client = createApiClient("http://localhost:8000/api");
 
     await expect(client.listDocuments()).rejects.toMatchObject({
       kind: "invalid_response",
