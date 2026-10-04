@@ -40,7 +40,7 @@ Implemented:
 - React + Vite + TypeScript frontend bootstrap with smoke tests
 - Responsive document + chat application shell for desktop and mobile
 - Centralized typed frontend API client for documents, uploads, deletion, and chat
-- Predictable frontend error mapping for HTTP, network, timeout, cancellation, and invalid responses
+- Predictable frontend error mapping for HTTP, validation, network, timeout, cancellation, and invalid responses
 - Frontend API-base configuration validation
 - Storage, upload, extraction, chunking, embedding, ingestion, document-read, deletion, RAG prompt, generation, retrieval, chat, and insufficient-context tests
 - Initial project documentation
@@ -155,13 +155,15 @@ cp .env.example .env
 npm install
 ```
 
-The frontend requires:
+The frontend uses a same-origin API path in development:
 
 ```env
-VITE_API_BASE_URL=http://localhost:8000
+VITE_API_BASE_URL=/api
 ```
 
-Invalid or missing API base URLs fail during frontend startup with a clear configuration error.
+Vite proxies `/api` requests to `http://localhost:8000`, so browser requests stay same-origin and do not require development CORS. Production may use either a same-origin root-relative path behind a reverse proxy or an absolute HTTP(S) API root such as `https://api.example.com/api`.
+
+Invalid or missing API base values fail during frontend startup with a clear configuration error.
 
 Run the frontend:
 
