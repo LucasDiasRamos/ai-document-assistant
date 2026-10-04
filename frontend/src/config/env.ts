@@ -9,12 +9,24 @@ export function resolveApiBaseUrl(env: ApiEnvironment): string {
     throw new Error("VITE_API_BASE_URL is required");
   }
 
+  if (value.startsWith("/")) {
+    if (value.startsWith("//")) {
+      throw new Error(
+        "VITE_API_BASE_URL must be a root-relative path or http(s) URL",
+      );
+    }
+
+    return value === "/" ? "" : value.replace(/\/+$/, "");
+  }
+
   let url: URL;
 
   try {
     url = new URL(value);
   } catch {
-    throw new Error("VITE_API_BASE_URL must be a valid absolute URL");
+    throw new Error(
+      "VITE_API_BASE_URL must be a root-relative path or valid absolute URL",
+    );
   }
 
   if (url.protocol !== "http:" && url.protocol !== "https:") {
