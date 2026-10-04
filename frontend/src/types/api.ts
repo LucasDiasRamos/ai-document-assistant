@@ -26,6 +26,12 @@ export interface ApiErrorResponse {
   code?: string | null;
 }
 
+export interface ApiValidationIssue {
+  type: string | null;
+  location: Array<string | number>;
+  message: string;
+}
+
 export interface ChatRequest {
   question: string;
 }
