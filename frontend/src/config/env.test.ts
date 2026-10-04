@@ -6,9 +6,17 @@ describe("resolveApiBaseUrl", () => {
   it("returns a normalized absolute API URL", () => {
     expect(
       resolveApiBaseUrl({
-        VITE_API_BASE_URL: " http://localhost:8000/ ",
+        VITE_API_BASE_URL: " http://localhost:8000/api/ ",
       }),
-    ).toBe("http://localhost:8000");
+    ).toBe("http://localhost:8000/api");
+  });
+
+  it("accepts a normalized same-origin root-relative API path", () => {
+    expect(
+      resolveApiBaseUrl({
+        VITE_API_BASE_URL: " /api/ ",
+      }),
+    ).toBe("/api");
   });
 
   it("rejects a missing API URL", () => {
@@ -17,10 +25,24 @@ describe("resolveApiBaseUrl", () => {
     );
   });
 
-  it("rejects a relative API URL", () => {
+  it("rejects protocol-relative URLs", () => {
     expect(() =>
-      resolveApiBaseUrl({ VITE_API_BASE_URL: "/api" }),
-    ).toThrow("VITE_API_BASE_URL must be a valid absolute URL");
+      resolveApiBaseUrl({
+        VITE_API_BASE_URL: "//example.com/api",
+      }),
+    ).toThrow(
+      "VITE_API_BASE_URL must be a root-relative path or http(s) URL",
+    );
+  });
+
+  it("rejects malformed non-relative API URLs", () => {
+    expect(() =>
+      resolveApiBaseUrl({
+        VITE_API_BASE_URL: "localhost:8000/api",
+      }),
+    ).toThrow(
+      "VITE_API_BASE_URL must be a root-relative path or valid absolute URL",
+    );
   });
 
   it("rejects unsupported protocols", () => {
