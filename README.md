@@ -40,6 +40,7 @@ Implemented:
 - React + Vite + TypeScript frontend bootstrap with smoke tests
 - Responsive document + chat application shell for desktop and mobile
 - Centralized typed frontend API client for documents, uploads, deletion, and chat
+- Live document sidebar with loading, empty, failure, retry, status, and timestamp states
 - Predictable frontend error mapping for HTTP, validation, network, timeout, cancellation, and invalid responses
 - Frontend API-base configuration validation
 - Storage, upload, extraction, chunking, embedding, ingestion, document-read, deletion, RAG prompt, generation, retrieval, chat, and insufficient-context tests
@@ -47,8 +48,9 @@ Implemented:
 
 Planned next:
 
-- Document list/sidebar wired to the API
-- Upload and delete workflows
+- PDF upload workflow
+- Processing-state refresh
+- Document deletion workflow
 - RAG evaluation fixtures and threshold calibration
 
 ## Target architecture
