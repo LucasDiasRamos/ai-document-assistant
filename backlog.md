@@ -1131,7 +1131,7 @@ The app already looks like a coherent product before feature wiring begins.
 
 ## WEB-03 — API client layer and shared types
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** WEB-01, stable API contracts
 
