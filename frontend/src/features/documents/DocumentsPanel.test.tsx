@@ -165,7 +165,7 @@ describe("DocumentsPanel", () => {
       vi.fn((_limit, options) => {
         receivedSignal = options?.signal;
 
-        return new Promise(() => undefined);
+        return new Promise<never>(() => undefined);
       }),
     );
 
