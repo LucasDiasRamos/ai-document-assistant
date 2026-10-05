@@ -1,10 +1,24 @@
 import { render, screen } from "@testing-library/react";
+import { vi } from "vitest";
 
 import { App } from "./App";
+import type { ApiClient } from "./services/apiClient";
+
+function createDocumentClient(): ApiClient {
+  return {
+    listDocuments: vi.fn().mockResolvedValue({
+      documents: [],
+      total: 0,
+    }),
+    uploadDocument: vi.fn(),
+    deleteDocument: vi.fn(),
+    sendChat: vi.fn(),
+  };
+}
 
 describe("App", () => {
   it("renders the document and chat workspace", () => {
-    render(<App />);
+    render(<App documentClient={createDocumentClient()} />);
 
     expect(
       screen.getByText("AI Document Assistant"),
@@ -34,7 +48,7 @@ describe("App", () => {
   });
 
   it("exposes a keyboard skip link to the chat region", () => {
-    render(<App />);
+    render(<App documentClient={createDocumentClient()} />);
 
     expect(
       screen.getByRole("link", { name: "Skip to chat" }),
@@ -46,11 +60,11 @@ describe("App", () => {
     );
   });
 
-  it("renders coherent empty states before data wiring", () => {
-    render(<App />);
+  it("renders coherent empty states before data wiring", async () => {
+    render(<App documentClient={createDocumentClient()} />);
 
     expect(
-      screen.getByRole("heading", { name: "No documents yet" }),
+      await screen.findByRole("heading", { name: "No documents yet" }),
     ).toBeInTheDocument();
 
     expect(
