@@ -1,8 +1,13 @@
 import { AppHeader } from "./components/AppHeader";
 import { ChatPanel } from "./features/chat/ChatPanel";
 import { DocumentsPanel } from "./features/documents/DocumentsPanel";
+import type { ApiClient } from "./services/apiClient";
 
-export function App() {
+export interface AppProps {
+  documentClient?: ApiClient;
+}
+
+export function App({ documentClient }: AppProps) {
   return (
     <div className="app">
       <a className="skip-link" href="#main-content">
@@ -12,7 +17,7 @@ export function App() {
       <AppHeader />
 
       <div className="workspace">
-        <DocumentsPanel />
+        <DocumentsPanel client={documentClient} />
         <ChatPanel />
       </div>
     </div>
