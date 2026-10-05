@@ -18,6 +18,7 @@ import type {
 } from "../../types/api";
 import {
   DocumentsPanel,
+  MAX_STATUS_POLL_ATTEMPTS,
   STATUS_POLL_INTERVAL_MS,
 } from "./DocumentsPanel";
 
@@ -255,6 +256,36 @@ describe("DocumentsPanel", () => {
     });
 
     expect(listDocuments).toHaveBeenCalledTimes(2);
+  });
+
+  it("caps polling when a document never leaves a transitional state", async () => {
+    vi.useFakeTimers();
+
+    const processing = documentFixture({
+      status: "processing",
+    });
+
+    const listDocuments = vi.fn().mockResolvedValue({
+      documents: [processing],
+      total: 1,
+    });
+
+    const client = clientWithList(listDocuments);
+
+    render(<DocumentsPanel client={client} />);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+
+    expect(listDocuments).toHaveBeenCalledTimes(
+      1 + MAX_STATUS_POLL_ATTEMPTS,
+    );
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it("aborts an active status poll when the component unmounts", async () => {
