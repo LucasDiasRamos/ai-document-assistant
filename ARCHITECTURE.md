@@ -55,7 +55,9 @@ Frontend HTTP access is centralized in a typed API client rather than scattered 
 
 The document sidebar loads the bounded document list on mount through the API client, cancels stale list requests during unmount, and renders explicit loading, empty, failure/retry, and populated states. Each document exposes the original filename, processing status, uploaded date, and user-safe failure message when present.
 
-PDF upload is initiated through an accessible file picker and the typed API client. The browser performs only an obvious PDF filename/MIME pre-check for user experience; backend validation remains authoritative. While an upload is active, the picker and upload button are disabled to prevent duplicate submission, the request is cancellable on unmount, API/network errors remain visible without discarding the existing document list, and a successful synchronous upload triggers a fresh document-list request. Delete mutations remain isolated to WEB-07.
+PDF upload is initiated through an accessible file picker and the typed API client. The browser performs only an obvious PDF filename/MIME pre-check for user experience; backend validation remains authoritative. While an upload is active, the picker and upload button are disabled to prevent duplicate submission, the request is cancellable on unmount, API/network errors remain visible without discarding the existing document list, and a successful synchronous upload triggers a fresh document-list request.
+
+The current backend ingestion path is synchronous, so the post-upload refresh normally observes a terminal status immediately. As a future-safe fallback, the document panel polls only while at least one document remains in `uploaded` or `processing`. Polls run sequentially every 2 seconds, stop immediately when all documents become `processed` or `failed`, abort on component cleanup, tolerate transient refresh failures, and are capped at 30 attempts so polling cannot continue indefinitely. Delete mutations remain isolated to WEB-07.
 
 ### FastAPI
 Exposes REST endpoints, validates requests/responses, coordinates services, and exposes health checks.

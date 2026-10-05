@@ -17,6 +17,22 @@ import type {
 
 const DOCUMENT_LIST_LIMIT = 50;
 
+export const STATUS_POLL_INTERVAL_MS = 2_000;
+export const MAX_STATUS_POLL_ATTEMPTS = 30;
+
+const TRANSITIONAL_DOCUMENT_STATUSES = new Set<DocumentStatus>([
+  "uploaded",
+  "processing",
+]);
+
+function hasTransitionalDocuments(
+  documents: DocumentSummary[],
+): boolean {
+  return documents.some((document) =>
+    TRANSITIONAL_DOCUMENT_STATUSES.has(document.status),
+  );
+}
+
 const STATUS_LABELS: Record<DocumentStatus, string> = {
   uploaded: "Uploaded",
   processing: "Processing",
@@ -134,6 +150,84 @@ export function DocumentsPanel({
       controller.abort();
     };
   }, [client, reloadKey]);
+
+  const shouldPollStatuses =
+    !isLoading &&
+    errorMessage === null &&
+    hasTransitionalDocuments(documents);
+
+  useEffect(() => {
+    if (!shouldPollStatuses) {
+      return;
+    }
+
+    let active = true;
+    let timeoutId: number | undefined;
+    let requestController: AbortController | null = null;
+    let attempts = 0;
+
+    const scheduleNextPoll = () => {
+      if (!active || attempts >= MAX_STATUS_POLL_ATTEMPTS) {
+        return;
+      }
+
+      timeoutId = window.setTimeout(async () => {
+        if (!active) {
+          return;
+        }
+
+        attempts += 1;
+        requestController = new AbortController();
+
+        try {
+          const response = await client.listDocuments(
+            DOCUMENT_LIST_LIMIT,
+            {
+              signal: requestController.signal,
+            },
+          );
+
+          if (!active) {
+            return;
+          }
+
+          setDocuments(response.documents);
+          setTotal(response.total);
+
+          if (hasTransitionalDocuments(response.documents)) {
+            scheduleNextPoll();
+          }
+        } catch (error: unknown) {
+          if (!active) {
+            return;
+          }
+
+          if (
+            error instanceof ApiClientError &&
+            error.kind === "cancelled"
+          ) {
+            return;
+          }
+
+          scheduleNextPoll();
+        } finally {
+          requestController = null;
+        }
+      }, STATUS_POLL_INTERVAL_MS);
+    };
+
+    scheduleNextPoll();
+
+    return () => {
+      active = false;
+
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
+
+      requestController?.abort();
+    };
+  }, [client, shouldPollStatuses]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -270,6 +364,7 @@ export function DocumentsPanel({
                   <div className="document-meta">
                     <span
                       className={`document-status status-${document.status}`}
+                      aria-live="polite"
                     >
                       {STATUS_LABELS[document.status]}
                     </span>

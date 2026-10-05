@@ -1,6 +1,12 @@
 import { StrictMode } from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   ApiClientError,
@@ -10,7 +16,15 @@ import type {
   DocumentSummary,
   DocumentUploadResponse,
 } from "../../types/api";
-import { DocumentsPanel } from "./DocumentsPanel";
+import {
+  DocumentsPanel,
+  MAX_STATUS_POLL_ATTEMPTS,
+  STATUS_POLL_INTERVAL_MS,
+} from "./DocumentsPanel";
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 function documentFixture(
   overrides: Partial<DocumentSummary> = {},
@@ -130,6 +144,187 @@ describe("DocumentsPanel", () => {
     expect(
       screen.getByText("Document processing failed"),
     ).toBeInTheDocument();
+  });
+
+  it("polls uploaded to processing to processed and then stops", async () => {
+    vi.useFakeTimers();
+
+    const uploaded = documentFixture({
+      original_filename: "pipeline.pdf",
+      status: "uploaded",
+    });
+    const processing = documentFixture({
+      original_filename: "pipeline.pdf",
+      status: "processing",
+    });
+    const processed = documentFixture({
+      original_filename: "pipeline.pdf",
+      status: "processed",
+    });
+
+    const listDocuments = vi
+      .fn()
+      .mockResolvedValueOnce({
+        documents: [uploaded],
+        total: 1,
+      })
+      .mockResolvedValueOnce({
+        documents: [processing],
+        total: 1,
+      })
+      .mockResolvedValueOnce({
+        documents: [processed],
+        total: 1,
+      });
+
+    const client = clientWithList(listDocuments);
+
+    render(<DocumentsPanel client={client} />);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText("Uploaded")).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(STATUS_POLL_INTERVAL_MS);
+    });
+
+    expect(screen.getByText("Processing")).toBeInTheDocument();
+    expect(listDocuments).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(STATUS_POLL_INTERVAL_MS);
+    });
+
+    expect(screen.getByText("Ready")).toBeInTheDocument();
+    expect(listDocuments).toHaveBeenCalledTimes(3);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(STATUS_POLL_INTERVAL_MS * 3);
+    });
+
+    expect(listDocuments).toHaveBeenCalledTimes(3);
+  });
+
+  it("polls processing to failed and stops at the terminal state", async () => {
+    vi.useFakeTimers();
+
+    const processing = documentFixture({
+      original_filename: "broken.pdf",
+      status: "processing",
+    });
+    const failed = documentFixture({
+      original_filename: "broken.pdf",
+      status: "failed",
+      error_message: "Document processing failed",
+    });
+
+    const listDocuments = vi
+      .fn()
+      .mockResolvedValueOnce({
+        documents: [processing],
+        total: 1,
+      })
+      .mockResolvedValueOnce({
+        documents: [failed],
+        total: 1,
+      });
+
+    const client = clientWithList(listDocuments);
+
+    render(<DocumentsPanel client={client} />);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText("Processing")).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(STATUS_POLL_INTERVAL_MS);
+    });
+
+    expect(screen.getByText("Failed")).toBeInTheDocument();
+    expect(
+      screen.getByText("Document processing failed"),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(STATUS_POLL_INTERVAL_MS * 3);
+    });
+
+    expect(listDocuments).toHaveBeenCalledTimes(2);
+  });
+
+  it("caps polling when a document never leaves a transitional state", async () => {
+    vi.useFakeTimers();
+
+    const processing = documentFixture({
+      status: "processing",
+    });
+
+    const listDocuments = vi.fn().mockResolvedValue({
+      documents: [processing],
+      total: 1,
+    });
+
+    const client = clientWithList(listDocuments);
+
+    render(<DocumentsPanel client={client} />);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+
+    expect(listDocuments).toHaveBeenCalledTimes(
+      1 + MAX_STATUS_POLL_ATTEMPTS,
+    );
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("aborts an active status poll when the component unmounts", async () => {
+    vi.useFakeTimers();
+
+    let pollSignal: AbortSignal | undefined;
+    const processing = documentFixture({
+      status: "processing",
+    });
+
+    const listDocuments = vi
+      .fn()
+      .mockResolvedValueOnce({
+        documents: [processing],
+        total: 1,
+      })
+      .mockImplementationOnce((_limit, options) => {
+        pollSignal = options?.signal;
+
+        return new Promise<never>(() => undefined);
+      });
+
+    const client = clientWithList(listDocuments);
+    const { unmount } = render(<DocumentsPanel client={client} />);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(STATUS_POLL_INTERVAL_MS);
+    });
+
+    expect(pollSignal).toBeDefined();
+    expect(pollSignal?.aborted).toBe(false);
+
+    unmount();
+
+    expect(pollSignal?.aborted).toBe(true);
   });
 
   it("shows an API error and retries successfully", async () => {
