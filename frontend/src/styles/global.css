@@ -467,6 +467,12 @@ svg {
   transform: translateY(1px);
 }
 
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+  transform: none;
+}
+
 .button-primary {
   border: 1px solid var(--surface-strong);
   color: #ffffff;
@@ -489,13 +495,39 @@ svg {
   background: var(--surface-soft);
 }
 
+.upload-controls {
+  display: grid;
+  gap: 0.6rem;
+}
+
 .upload-button {
   width: 100%;
 }
 
-.upload-button span {
+.upload-button > span:not(.button-spinner) {
   font-size: 1.15rem;
   line-height: 1;
+}
+
+.button-spinner {
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 2px solid rgb(255 255 255 / 0.45);
+  border-top-color: #ffffff;
+  border-radius: 999px;
+  animation: spin 800ms linear infinite;
+}
+
+.upload-error {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #f3c7c2;
+  border-radius: 0.65rem;
+  color: #b42318;
+  background: #fff4f2;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .panel-footnote {
