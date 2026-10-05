@@ -17,7 +17,7 @@ function createDocumentClient(): ApiClient {
 }
 
 describe("App", () => {
-  it("renders the document and chat workspace", () => {
+  it("renders the document and chat workspace", async () => {
     render(<App documentClient={createDocumentClient()} />);
 
     expect(
@@ -45,9 +45,13 @@ describe("App", () => {
     expect(
       screen.getByRole("button", { name: "Send question" }),
     ).toBeInTheDocument();
+
+    expect(
+      await screen.findByRole("heading", { name: "No documents yet" }),
+    ).toBeInTheDocument();
   });
 
-  it("exposes a keyboard skip link to the chat region", () => {
+  it("exposes a keyboard skip link to the chat region", async () => {
     render(<App documentClient={createDocumentClient()} />);
 
     expect(
@@ -58,6 +62,10 @@ describe("App", () => {
       "id",
       "main-content",
     );
+
+    expect(
+      await screen.findByRole("heading", { name: "No documents yet" }),
+    ).toBeInTheDocument();
   });
 
   it("renders coherent empty states before data wiring", async () => {
