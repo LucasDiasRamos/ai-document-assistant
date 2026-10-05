@@ -136,6 +136,8 @@ export function DocumentsPanel({
   }, [client, reloadKey]);
 
   useEffect(() => {
+    mountedRef.current = true;
+
     return () => {
       mountedRef.current = false;
       uploadControllerRef.current?.abort();
