@@ -1,10 +1,24 @@
 import { render, screen } from "@testing-library/react";
+import { vi } from "vitest";
 
 import { App } from "./App";
+import type { ApiClient } from "./services/apiClient";
+
+function createDocumentClient(): ApiClient {
+  return {
+    listDocuments: vi.fn().mockResolvedValue({
+      documents: [],
+      total: 0,
+    }),
+    uploadDocument: vi.fn(),
+    deleteDocument: vi.fn(),
+    sendChat: vi.fn(),
+  };
+}
 
 describe("App", () => {
-  it("renders the document and chat workspace", () => {
-    render(<App />);
+  it("renders the document and chat workspace", async () => {
+    render(<App documentClient={createDocumentClient()} />);
 
     expect(
       screen.getByText("AI Document Assistant"),
@@ -31,10 +45,14 @@ describe("App", () => {
     expect(
       screen.getByRole("button", { name: "Send question" }),
     ).toBeInTheDocument();
+
+    expect(
+      await screen.findByRole("heading", { name: "No documents yet" }),
+    ).toBeInTheDocument();
   });
 
-  it("exposes a keyboard skip link to the chat region", () => {
-    render(<App />);
+  it("exposes a keyboard skip link to the chat region", async () => {
+    render(<App documentClient={createDocumentClient()} />);
 
     expect(
       screen.getByRole("link", { name: "Skip to chat" }),
@@ -44,13 +62,17 @@ describe("App", () => {
       "id",
       "main-content",
     );
-  });
-
-  it("renders coherent empty states before data wiring", () => {
-    render(<App />);
 
     expect(
-      screen.getByRole("heading", { name: "No documents yet" }),
+      await screen.findByRole("heading", { name: "No documents yet" }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders coherent empty states before data wiring", async () => {
+    render(<App documentClient={createDocumentClient()} />);
+
+    expect(
+      await screen.findByRole("heading", { name: "No documents yet" }),
     ).toBeInTheDocument();
 
     expect(
