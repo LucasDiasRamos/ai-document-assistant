@@ -174,7 +174,8 @@ svg {
 
 .workspace {
   width: min(100%, 92rem);
-  min-height: calc(100vh - 6.5rem);
+  height: calc(100dvh - 6.5rem);
+  min-height: 36rem;
   margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(17rem, 21rem) minmax(0, 1fr);
@@ -187,6 +188,7 @@ svg {
 
 .documents-panel {
   min-width: 0;
+  min-height: 0;
   padding: 1.35rem;
   display: flex;
   flex-direction: column;
@@ -678,7 +680,8 @@ svg {
   }
 
   .workspace {
-    min-height: calc(100vh - 5.1rem);
+    height: auto;
+    min-height: calc(100dvh - 5.1rem);
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(32rem, 1fr);
     overflow: visible;
