@@ -42,6 +42,7 @@ Implemented:
 - Centralized typed frontend API client for documents, uploads, deletion, and chat
 - Live document sidebar with loading, empty, failure, retry, status, and timestamp states
 - PDF upload interaction with client-side file filtering, pending state, API errors, and post-upload refresh
+- Bounded automatic status refresh for uploaded/processing documents until ready or failed
 - Predictable frontend error mapping for HTTP, validation, network, timeout, cancellation, and invalid responses
 - Frontend API-base configuration validation
 - Storage, upload, extraction, chunking, embedding, ingestion, document-read, deletion, RAG prompt, generation, retrieval, chat, and insufficient-context tests
@@ -49,9 +50,9 @@ Implemented:
 
 Planned next:
 
-- Processing-state refresh
 - Document deletion workflow
 - Chat presentation and API integration
+- Citation and error-state UX
 - RAG evaluation fixtures and threshold calibration
 
 ## Target architecture
