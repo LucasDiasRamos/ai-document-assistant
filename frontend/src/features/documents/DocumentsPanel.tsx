@@ -1,4 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
 
 import {
   ApiClientError,
@@ -81,6 +86,7 @@ export function DocumentsPanel({
   const [reloadKey, setReloadKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadControllerRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -131,12 +137,13 @@ export function DocumentsPanel({
 
   useEffect(() => {
     return () => {
+      mountedRef.current = false;
       uploadControllerRef.current?.abort();
     };
   }, []);
 
   const handleFileSelection = async (
-    event: React.ChangeEvent<HTMLInputElement>,
+    event: ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
 
@@ -161,7 +168,9 @@ export function DocumentsPanel({
         signal: controller.signal,
       });
 
-      setReloadKey((value) => value + 1);
+      if (mountedRef.current) {
+        setReloadKey((value) => value + 1);
+      }
     } catch (error: unknown) {
       if (
         error instanceof ApiClientError &&
@@ -170,16 +179,20 @@ export function DocumentsPanel({
         return;
       }
 
-      setUploadError(documentUploadError(error));
+      if (mountedRef.current) {
+        setUploadError(documentUploadError(error));
+      }
     } finally {
       if (uploadControllerRef.current === controller) {
         uploadControllerRef.current = null;
       }
 
-      setIsUploading(false);
+      if (mountedRef.current) {
+        setIsUploading(false);
 
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
       }
     }
   };
