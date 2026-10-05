@@ -43,11 +43,12 @@ function documentFixture(
 function clientWithList(
   listDocuments: ApiClient["listDocuments"],
   uploadDocument: ApiClient["uploadDocument"] = vi.fn(),
+  deleteDocument: ApiClient["deleteDocument"] = vi.fn(),
 ): ApiClient {
   return {
     listDocuments,
     uploadDocument,
-    deleteDocument: vi.fn(),
+    deleteDocument,
     sendChat: vi.fn(),
   };
 }
@@ -581,6 +582,203 @@ describe("DocumentsPanel", () => {
     });
 
     expect(listDocuments.mock.calls.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("cancels document deletion confirmation without calling the API", async () => {
+    const deleteDocument = vi.fn();
+    const client = clientWithList(
+      vi.fn().mockResolvedValue({
+        documents: [documentFixture()],
+        total: 1,
+      }),
+      vi.fn(),
+      deleteDocument,
+    );
+
+    render(<DocumentsPanel client={client} />);
+
+    await screen.findByText("manual.pdf");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Delete manual.pdf" }),
+    );
+
+    expect(
+      screen.getByRole("group", {
+        name: "Confirm deletion of manual.pdf",
+      }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(
+      screen.queryByRole("group", {
+        name: "Confirm deletion of manual.pdf",
+      }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("manual.pdf")).toBeInTheDocument();
+    expect(deleteDocument).not.toHaveBeenCalled();
+  });
+
+  it("removes a document only after successful deletion", async () => {
+    let resolveDelete: (() => void) | undefined;
+    const deleteDocument = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveDelete = resolve;
+        }),
+    );
+    const client = clientWithList(
+      vi.fn().mockResolvedValue({
+        documents: [documentFixture()],
+        total: 1,
+      }),
+      vi.fn(),
+      deleteDocument,
+    );
+
+    render(<DocumentsPanel client={client} />);
+
+    await screen.findByText("manual.pdf");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Delete manual.pdf" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(deleteDocument).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({
+        signal: expect.any(AbortSignal),
+      }),
+    );
+    expect(screen.getByText("manual.pdf")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Deleting…" }),
+    ).toBeDisabled();
+
+    resolveDelete?.();
+
+    expect(
+      await screen.findByRole("heading", { name: "No documents yet" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("manual.pdf")).not.toBeInTheDocument();
+    expect(
+      screen.getByLabelText("0 documents uploaded"),
+    ).toHaveTextContent("0");
+  });
+
+  it("retains the document and shows an error when deletion fails", async () => {
+    const deleteDocument = vi.fn().mockRejectedValue(
+      new ApiClientError("Unable to delete document", {
+        kind: "network",
+      }),
+    );
+    const client = clientWithList(
+      vi.fn().mockResolvedValue({
+        documents: [documentFixture()],
+        total: 1,
+      }),
+      vi.fn(),
+      deleteDocument,
+    );
+
+    render(<DocumentsPanel client={client} />);
+
+    await screen.findByText("manual.pdf");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Delete manual.pdf" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Unable to delete document",
+    );
+    expect(screen.getByText("manual.pdf")).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", {
+        name: "Confirm deletion of manual.pdf",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Delete" }),
+    ).toBeEnabled();
+  });
+
+  it("prevents repeated deletion while a request is pending", async () => {
+    const first = documentFixture({
+      id: 1,
+      original_filename: "first.pdf",
+    });
+    const second = documentFixture({
+      id: 2,
+      original_filename: "second.pdf",
+    });
+    const deleteDocument = vi.fn(
+      () => new Promise<void>(() => undefined),
+    );
+    const client = clientWithList(
+      vi.fn().mockResolvedValue({
+        documents: [first, second],
+        total: 2,
+      }),
+      vi.fn(),
+      deleteDocument,
+    );
+
+    render(<DocumentsPanel client={client} />);
+
+    await screen.findByText("first.pdf");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Delete first.pdf" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(
+      screen.getByRole("button", { name: "Deleting…" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Delete second.pdf" }),
+    ).toBeDisabled();
+    expect(deleteDocument).toHaveBeenCalledTimes(1);
+  });
+
+  it("aborts an active deletion when the component unmounts", async () => {
+    let deleteSignal: AbortSignal | undefined;
+    const deleteDocument = vi.fn((_documentId, options) => {
+      deleteSignal = options?.signal;
+
+      return new Promise<void>(() => undefined);
+    });
+    const client = clientWithList(
+      vi.fn().mockResolvedValue({
+        documents: [documentFixture()],
+        total: 1,
+      }),
+      vi.fn(),
+      deleteDocument,
+    );
+
+    const { unmount } = render(<DocumentsPanel client={client} />);
+
+    await screen.findByText("manual.pdf");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Delete manual.pdf" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => {
+      expect(deleteSignal).toBeDefined();
+    });
+
+    expect(deleteSignal?.aborted).toBe(false);
+
+    unmount();
+
+    expect(deleteSignal?.aborted).toBe(true);
   });
 
   it("cancels the active list request on unmount", () => {
