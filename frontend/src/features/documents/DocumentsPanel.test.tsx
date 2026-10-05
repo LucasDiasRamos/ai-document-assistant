@@ -5,7 +5,10 @@ import {
   ApiClientError,
   type ApiClient,
 } from "../../services/apiClient";
-import type { DocumentSummary } from "../../types/api";
+import type {
+  DocumentSummary,
+  DocumentUploadResponse,
+} from "../../types/api";
 import { DocumentsPanel } from "./DocumentsPanel";
 
 function documentFixture(
@@ -24,13 +27,20 @@ function documentFixture(
 
 function clientWithList(
   listDocuments: ApiClient["listDocuments"],
+  uploadDocument: ApiClient["uploadDocument"] = vi.fn(),
 ): ApiClient {
   return {
     listDocuments,
-    uploadDocument: vi.fn(),
+    uploadDocument,
     deleteDocument: vi.fn(),
     sendChat: vi.fn(),
   };
+}
+
+function pdfFile(name = "guide.pdf"): File {
+  return new File(["%PDF-1.7"], name, {
+    type: "application/pdf",
+  });
 }
 
 describe("DocumentsPanel", () => {
@@ -158,6 +168,186 @@ describe("DocumentsPanel", () => {
     });
   });
 
+  it("uploads a valid PDF and refreshes the document list", async () => {
+    const uploaded = documentFixture({
+      id: 8,
+      original_filename: "guide.pdf",
+    });
+    const listDocuments = vi
+      .fn()
+      .mockResolvedValueOnce({
+        documents: [],
+        total: 0,
+      })
+      .mockResolvedValueOnce({
+        documents: [uploaded],
+        total: 1,
+      });
+    const uploadDocument = vi
+      .fn()
+      .mockResolvedValue(uploaded as DocumentUploadResponse);
+    const client = clientWithList(listDocuments, uploadDocument);
+
+    render(<DocumentsPanel client={client} />);
+
+    await screen.findByRole("heading", { name: "No documents yet" });
+
+    const input = screen.getByLabelText("Choose PDF to upload");
+    const file = pdfFile();
+
+    fireEvent.change(input, {
+      target: { files: [file] },
+    });
+
+    await waitFor(() => {
+      expect(uploadDocument).toHaveBeenCalledTimes(1);
+    });
+
+    expect(uploadDocument).toHaveBeenCalledWith(
+      file,
+      expect.objectContaining({
+        signal: expect.any(AbortSignal),
+      }),
+    );
+
+    expect(await screen.findByText("guide.pdf")).toBeInTheDocument();
+    expect(listDocuments).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects an obvious non-PDF selection before upload", async () => {
+    const uploadDocument = vi.fn();
+    const client = clientWithList(
+      vi.fn().mockResolvedValue({
+        documents: [],
+        total: 0,
+      }),
+      uploadDocument,
+    );
+
+    render(<DocumentsPanel client={client} />);
+
+    await screen.findByRole("heading", { name: "No documents yet" });
+
+    fireEvent.change(screen.getByLabelText("Choose PDF to upload"), {
+      target: {
+        files: [
+          new File(["hello"], "notes.txt", {
+            type: "text/plain",
+          }),
+        ],
+      },
+    });
+
+    expect(
+      await screen.findByRole("alert"),
+    ).toHaveTextContent("Please select a PDF file.");
+    expect(uploadDocument).not.toHaveBeenCalled();
+  });
+
+  it("shows a server validation error after upload rejection", async () => {
+    const uploadDocument = vi.fn().mockRejectedValue(
+      new ApiClientError("The uploaded file is not a valid PDF", {
+        kind: "http",
+        status: 400,
+      }),
+    );
+    const client = clientWithList(
+      vi.fn().mockResolvedValue({
+        documents: [],
+        total: 0,
+      }),
+      uploadDocument,
+    );
+
+    render(<DocumentsPanel client={client} />);
+    await screen.findByRole("heading", { name: "No documents yet" });
+
+    fireEvent.change(screen.getByLabelText("Choose PDF to upload"), {
+      target: { files: [pdfFile("invalid.pdf")] },
+    });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "The uploaded file is not a valid PDF",
+    );
+    expect(
+      screen.getByRole("button", { name: "Upload PDF" }),
+    ).toBeEnabled();
+  });
+
+  it("shows a predictable network failure during upload", async () => {
+    const uploadDocument = vi.fn().mockRejectedValue(
+      new ApiClientError("Unable to reach the API", {
+        kind: "network",
+      }),
+    );
+    const client = clientWithList(
+      vi.fn().mockResolvedValue({
+        documents: [],
+        total: 0,
+      }),
+      uploadDocument,
+    );
+
+    render(<DocumentsPanel client={client} />);
+    await screen.findByRole("heading", { name: "No documents yet" });
+
+    fireEvent.change(screen.getByLabelText("Choose PDF to upload"), {
+      target: { files: [pdfFile()] },
+    });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Unable to reach the API",
+    );
+  });
+
+  it("disables upload while the active request is pending", async () => {
+    let resolveUpload:
+      | ((value: DocumentUploadResponse) => void)
+      | undefined;
+
+    const uploadDocument = vi.fn(
+      () =>
+        new Promise<DocumentUploadResponse>((resolve) => {
+          resolveUpload = resolve;
+        }),
+    );
+    const listDocuments = vi.fn().mockResolvedValue({
+      documents: [],
+      total: 0,
+    });
+    const client = clientWithList(listDocuments, uploadDocument);
+
+    render(<DocumentsPanel client={client} />);
+    await screen.findByRole("heading", { name: "No documents yet" });
+
+    fireEvent.change(screen.getByLabelText("Choose PDF to upload"), {
+      target: { files: [pdfFile()] },
+    });
+
+    const pendingButton = await screen.findByRole("button", {
+      name: "Uploading…",
+    });
+
+    expect(pendingButton).toBeDisabled();
+    expect(
+      screen.getByLabelText("Choose PDF to upload"),
+    ).toBeDisabled();
+    expect(uploadDocument).toHaveBeenCalledTimes(1);
+
+    resolveUpload?.(
+      documentFixture({
+        id: 9,
+        original_filename: "guide.pdf",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Upload PDF" }),
+      ).toBeEnabled();
+    });
+  });
+
   it("cancels the active list request on unmount", () => {
     let receivedSignal: AbortSignal | undefined;
 
@@ -176,5 +366,41 @@ describe("DocumentsPanel", () => {
     unmount();
 
     expect(receivedSignal?.aborted).toBe(true);
+  });
+
+  it("cancels an active upload request on unmount", async () => {
+    let uploadSignal: AbortSignal | undefined;
+
+    const uploadDocument = vi.fn(
+      (_file, options) => {
+        uploadSignal = options?.signal;
+
+        return new Promise<DocumentUploadResponse>(() => undefined);
+      },
+    );
+    const client = clientWithList(
+      vi.fn().mockResolvedValue({
+        documents: [],
+        total: 0,
+      }),
+      uploadDocument,
+    );
+
+    const { unmount } = render(<DocumentsPanel client={client} />);
+    await screen.findByRole("heading", { name: "No documents yet" });
+
+    fireEvent.change(screen.getByLabelText("Choose PDF to upload"), {
+      target: { files: [pdfFile()] },
+    });
+
+    await waitFor(() => {
+      expect(uploadSignal).toBeDefined();
+    });
+
+    expect(uploadSignal?.aborted).toBe(false);
+
+    unmount();
+
+    expect(uploadSignal?.aborted).toBe(true);
   });
 });
