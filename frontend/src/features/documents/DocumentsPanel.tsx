@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   ApiClientError,
@@ -40,6 +40,22 @@ function documentLoadError(error: unknown): string {
   return "Unable to load documents";
 }
 
+function documentUploadError(error: unknown): string {
+  if (error instanceof ApiClientError) {
+    return error.message;
+  }
+
+  return "Unable to upload document";
+}
+
+function isPdfSelection(file: File): boolean {
+  const hasPdfExtension = file.name.toLowerCase().endsWith(".pdf");
+  const hasAcceptedType =
+    file.type === "" || file.type === "application/pdf";
+
+  return hasPdfExtension && hasAcceptedType;
+}
+
 function DocumentIcon() {
   return (
     <svg viewBox="0 0 24 24" role="presentation">
@@ -60,7 +76,11 @@ export function DocumentsPanel({
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -108,6 +128,61 @@ export function DocumentsPanel({
       controller.abort();
     };
   }, [client, reloadKey]);
+
+  useEffect(() => {
+    return () => {
+      uploadControllerRef.current?.abort();
+    };
+  }, []);
+
+  const handleFileSelection = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+
+    if (!file || isUploading) {
+      return;
+    }
+
+    setUploadError(null);
+
+    if (!isPdfSelection(file)) {
+      setUploadError("Please select a PDF file.");
+      event.target.value = "";
+      return;
+    }
+
+    const controller = new AbortController();
+    uploadControllerRef.current = controller;
+    setIsUploading(true);
+
+    try {
+      await client.uploadDocument(file, {
+        signal: controller.signal,
+      });
+
+      setReloadKey((value) => value + 1);
+    } catch (error: unknown) {
+      if (
+        error instanceof ApiClientError &&
+        error.kind === "cancelled"
+      ) {
+        return;
+      }
+
+      setUploadError(documentUploadError(error));
+    } finally {
+      if (uploadControllerRef.current === controller) {
+        uploadControllerRef.current = null;
+      }
+
+      setIsUploading(false);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
 
   const countLabel =
     total === 1 ? "1 document uploaded" : `${total} documents uploaded`;
@@ -199,13 +274,52 @@ export function DocumentsPanel({
         )}
       </div>
 
-      <button className="button button-primary upload-button" type="button">
-        <span aria-hidden="true">+</span>
-        Upload PDF
-      </button>
+      <div className="upload-controls">
+        <label className="sr-only" htmlFor="document-upload">
+          Choose PDF to upload
+        </label>
+        <input
+          ref={fileInputRef}
+          className="sr-only"
+          id="document-upload"
+          type="file"
+          accept=".pdf,application/pdf"
+          disabled={isUploading}
+          onChange={handleFileSelection}
+        />
+
+        <button
+          className="button button-primary upload-button"
+          type="button"
+          disabled={isUploading}
+          aria-busy={isUploading}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {isUploading ? (
+            <>
+              <span
+                className="button-spinner"
+                aria-hidden="true"
+              />
+              Uploading…
+            </>
+          ) : (
+            <>
+              <span aria-hidden="true">+</span>
+              Upload PDF
+            </>
+          )}
+        </button>
+
+        {uploadError ? (
+          <p className="upload-error" role="alert">
+            {uploadError}
+          </p>
+        ) : null}
+      </div>
 
       <p className="panel-footnote">
-        PDF files only. Upload wiring arrives in the document workflow.
+        PDF files only. Server validation still applies after selection.
       </p>
     </aside>
   );
