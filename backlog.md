@@ -1172,7 +1172,7 @@ Components do not scatter raw `fetch` calls and URL strings across the app.
 
 ## WEB-04 — Document list/sidebar
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** WEB-02, WEB-03, API-12
 
