@@ -1245,7 +1245,7 @@ A user can upload a PDF from the browser and see it appear in the document list.
 
 ## WEB-06 — Processing status refresh
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** WEB-04, WEB-05, API-11/API-12
 
