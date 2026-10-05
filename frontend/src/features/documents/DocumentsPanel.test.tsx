@@ -1,3 +1,4 @@
+import { StrictMode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -346,6 +347,45 @@ describe("DocumentsPanel", () => {
         screen.getByRole("button", { name: "Upload PDF" }),
       ).toBeEnabled();
     });
+  });
+
+  it("completes uploads correctly under React StrictMode", async () => {
+    const uploaded = documentFixture({
+      id: 12,
+      original_filename: "strict-mode.pdf",
+    });
+    const listDocuments = vi.fn().mockResolvedValue({
+      documents: [uploaded],
+      total: 1,
+    });
+    const uploadDocument = vi
+      .fn()
+      .mockResolvedValue(uploaded as DocumentUploadResponse);
+    const client = clientWithList(listDocuments, uploadDocument);
+
+    render(
+      <StrictMode>
+        <DocumentsPanel client={client} />
+      </StrictMode>,
+    );
+
+    await screen.findByText("strict-mode.pdf");
+
+    fireEvent.change(screen.getByLabelText("Choose PDF to upload"), {
+      target: { files: [pdfFile("strict-mode.pdf")] },
+    });
+
+    await waitFor(() => {
+      expect(uploadDocument).toHaveBeenCalledTimes(1);
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Upload PDF" }),
+      ).toBeEnabled();
+    });
+
+    expect(listDocuments.mock.calls.length).toBeGreaterThanOrEqual(3);
   });
 
   it("cancels the active list request on unmount", () => {
