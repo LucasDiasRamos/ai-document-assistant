@@ -1207,7 +1207,7 @@ Users can immediately see which documents are available for Q&A.
 
 ## WEB-05 — Upload interaction
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** WEB-03, API-07
 
