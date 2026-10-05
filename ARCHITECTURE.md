@@ -53,6 +53,8 @@ The application shell uses a two-column documents/chat workspace on larger scree
 
 Frontend HTTP access is centralized in a typed API client rather than scattered across components. Shared TypeScript contracts mirror the current FastAPI document and chat response schemas. The client exposes list/upload/delete/chat methods, applies operation-appropriate request timeouts, supports caller cancellation, leaves multipart boundaries to the browser, handles 204 responses without JSON parsing, and converts HTTP/network/timeout/cancellation/invalid-response failures into a predictable `ApiClientError` shape. Standard FastAPI 422 validation arrays are normalized into readable messages while preserving field location, validation type, and message for the UI.
 
+The document sidebar loads the bounded document list on mount through the API client, cancels stale list requests during unmount, and renders explicit loading, empty, failure/retry, and populated states. Each document exposes the original filename, processing status, uploaded date, and user-safe failure message when present. Upload and delete mutations remain isolated to their dedicated Web tasks.
+
 ### FastAPI
 Exposes REST endpoints, validates requests/responses, coordinates services, and exposes health checks.
 
