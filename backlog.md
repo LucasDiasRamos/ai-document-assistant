@@ -1345,7 +1345,7 @@ The application can visually represent a complete question/answer exchange befor
 
 ## WEB-09 — Chat API integration
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** WEB-03, WEB-08, API-17
 
