@@ -5,9 +5,13 @@ import type { ApiClient } from "./services/apiClient";
 
 export interface AppProps {
   documentClient?: ApiClient;
+  chatClient?: ApiClient;
 }
 
-export function App({ documentClient }: AppProps) {
+export function App({
+  documentClient,
+  chatClient,
+}: AppProps) {
   return (
     <div className="app">
       <a className="skip-link" href="#main-content">
@@ -18,7 +22,7 @@ export function App({ documentClient }: AppProps) {
 
       <div className="workspace">
         <DocumentsPanel client={documentClient} />
-        <ChatPanel />
+        <ChatPanel client={chatClient} />
       </div>
     </div>
   );
