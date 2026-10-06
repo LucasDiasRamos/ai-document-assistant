@@ -323,7 +323,8 @@ svg {
   min-width: 0;
   padding: 0.8rem;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
   gap: 0.75rem;
   border: 1px solid var(--border);
   border-radius: 0.85rem;
@@ -410,6 +411,86 @@ svg {
   font-size: 0.72rem;
   line-height: 1.45;
   overflow-wrap: anywhere;
+}
+
+.document-delete-button {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 0.6rem;
+  color: var(--text-muted);
+  background: transparent;
+}
+
+.document-delete-button:hover:not(:disabled) {
+  border-color: #f3c7c2;
+  color: #b42318;
+  background: #fff4f2;
+}
+
+.document-delete-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.document-delete-button svg {
+  width: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.delete-confirmation {
+  grid-column: 1 / -1;
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.65rem;
+  border: 1px solid #f3c7c2;
+  border-radius: 0.7rem;
+  background: #fffafa;
+}
+
+.delete-confirmation > p {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.delete-confirmation .delete-error {
+  color: #b42318;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.delete-confirmation-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.delete-confirmation-actions .button {
+  min-height: 2.2rem;
+  font-size: 0.76rem;
+}
+
+.delete-confirm-button {
+  border: 1px solid #b42318;
+  color: #ffffff;
+  background: #b42318;
+}
+
+.delete-confirm-button:hover:not(:disabled) {
+  background: #912018;
+}
+
+.delete-cancel-button {
+  background: #ffffff;
 }
 
 .empty-icon {

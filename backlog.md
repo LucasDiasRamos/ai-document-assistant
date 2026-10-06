@@ -1278,7 +1278,7 @@ The user sees when a document becomes ready for questions without manually refre
 
 ## WEB-07 — Delete document interaction
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** WEB-04, API-13
 

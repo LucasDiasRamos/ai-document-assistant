@@ -69,6 +69,14 @@ function documentUploadError(error: unknown): string {
   return "Unable to upload document";
 }
 
+function documentDeleteError(error: unknown): string {
+  if (error instanceof ApiClientError) {
+    return error.message;
+  }
+
+  return "Unable to delete document";
+}
+
 function isPdfSelection(file: File): boolean {
   const hasPdfExtension = file.name.toLowerCase().endsWith(".pdf");
   const hasAcceptedType =
@@ -99,9 +107,20 @@ export function DocumentsPanel({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [deleteCandidateId, setDeleteCandidateId] = useState<number | null>(
+    null,
+  );
+  const [deletingDocumentId, setDeletingDocumentId] = useState<number | null>(
+    null,
+  );
+  const [deleteError, setDeleteError] = useState<{
+    documentId: number;
+    message: string;
+  } | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadControllerRef = useRef<AbortController | null>(null);
+  const deleteControllerRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -154,6 +173,7 @@ export function DocumentsPanel({
   const shouldPollStatuses =
     !isLoading &&
     errorMessage === null &&
+    deletingDocumentId === null &&
     hasTransitionalDocuments(documents);
 
   useEffect(() => {
@@ -235,6 +255,7 @@ export function DocumentsPanel({
     return () => {
       mountedRef.current = false;
       uploadControllerRef.current?.abort();
+      deleteControllerRef.current?.abort();
     };
   }, []);
 
@@ -289,6 +310,75 @@ export function DocumentsPanel({
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
         }
+      }
+    }
+  };
+
+  const handleDeleteRequest = (documentId: number) => {
+    if (deletingDocumentId !== null) {
+      return;
+    }
+
+    setDeleteCandidateId(documentId);
+    setDeleteError(null);
+  };
+
+  const handleDeleteCancel = () => {
+    if (deletingDocumentId !== null) {
+      return;
+    }
+
+    setDeleteCandidateId(null);
+    setDeleteError(null);
+  };
+
+  const handleDeleteConfirm = async (document: DocumentSummary) => {
+    if (deletingDocumentId !== null) {
+      return;
+    }
+
+    const controller = new AbortController();
+    deleteControllerRef.current = controller;
+    setDeletingDocumentId(document.id);
+    setDeleteError(null);
+
+    try {
+      await client.deleteDocument(document.id, {
+        signal: controller.signal,
+      });
+
+      if (!mountedRef.current) {
+        return;
+      }
+
+      setDocuments((currentDocuments) =>
+        currentDocuments.filter(
+          (currentDocument) => currentDocument.id !== document.id,
+        ),
+      );
+      setTotal((currentTotal) => Math.max(0, currentTotal - 1));
+      setDeleteCandidateId(null);
+    } catch (error: unknown) {
+      if (
+        error instanceof ApiClientError &&
+        error.kind === "cancelled"
+      ) {
+        return;
+      }
+
+      if (mountedRef.current) {
+        setDeleteError({
+          documentId: document.id,
+          message: documentDeleteError(error),
+        });
+      }
+    } finally {
+      if (deleteControllerRef.current === controller) {
+        deleteControllerRef.current = null;
+      }
+
+      if (mountedRef.current) {
+        setDeletingDocumentId(null);
       }
     }
   };
@@ -350,36 +440,100 @@ export function DocumentsPanel({
           </div>
         ) : (
           <ul className="document-list" aria-label="Uploaded documents">
-            {documents.map((document) => (
-              <li className="document-item" key={document.id}>
-                <div className="document-icon" aria-hidden="true">
-                  <DocumentIcon />
-                </div>
+            {documents.map((document) => {
+              const isConfirmingDelete =
+                deleteCandidateId === document.id;
+              const isDeleting =
+                deletingDocumentId === document.id;
+              const documentDeleteErrorMessage =
+                deleteError?.documentId === document.id
+                  ? deleteError.message
+                  : null;
 
-                <div className="document-details">
-                  <p className="document-name" title={document.original_filename}>
-                    {document.original_filename}
-                  </p>
-
-                  <div className="document-meta">
-                    <span
-                      className={`document-status status-${document.status}`}
-                      aria-live="polite"
-                    >
-                      {STATUS_LABELS[document.status]}
-                    </span>
-                    <span>{formatUploadedAt(document.created_at)}</span>
+              return (
+                <li className="document-item" key={document.id}>
+                  <div className="document-icon" aria-hidden="true">
+                    <DocumentIcon />
                   </div>
 
-                  {document.status === "failed" &&
-                  document.error_message ? (
-                    <p className="document-error-message">
-                      {document.error_message}
+                  <div className="document-details">
+                    <p
+                      className="document-name"
+                      title={document.original_filename}
+                    >
+                      {document.original_filename}
                     </p>
+
+                    <div className="document-meta">
+                      <span
+                        className={`document-status status-${document.status}`}
+                        aria-live="polite"
+                      >
+                        {STATUS_LABELS[document.status]}
+                      </span>
+                      <span>{formatUploadedAt(document.created_at)}</span>
+                    </div>
+
+                    {document.status === "failed" &&
+                    document.error_message ? (
+                      <p className="document-error-message">
+                        {document.error_message}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <button
+                    className="document-delete-button"
+                    type="button"
+                    aria-label={`Delete ${document.original_filename}`}
+                    disabled={deletingDocumentId !== null}
+                    onClick={() => handleDeleteRequest(document.id)}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4.75 7.25h14.5M9 7.25V5.5h6v1.75M7.5 7.25l.75 11h7.5l.75-11M10 10.5v4.75M14 10.5v4.75" />
+                    </svg>
+                  </button>
+
+                  {isConfirmingDelete ? (
+                    <div
+                      className="delete-confirmation"
+                      role="group"
+                      aria-label={`Confirm deletion of ${document.original_filename}`}
+                    >
+                      <p>
+                        Delete this document? This cannot be undone.
+                      </p>
+
+                      {documentDeleteErrorMessage ? (
+                        <p className="delete-error" role="alert">
+                          {documentDeleteErrorMessage}
+                        </p>
+                      ) : null}
+
+                      <div className="delete-confirmation-actions">
+                        <button
+                          className="button button-secondary delete-cancel-button"
+                          type="button"
+                          disabled={isDeleting}
+                          onClick={handleDeleteCancel}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="button delete-confirm-button"
+                          type="button"
+                          disabled={isDeleting}
+                          aria-busy={isDeleting}
+                          onClick={() => handleDeleteConfirm(document)}
+                        >
+                          {isDeleting ? "Deleting…" : "Delete"}
+                        </button>
+                      </div>
+                    </div>
                   ) : null}
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
