@@ -1309,7 +1309,7 @@ Users can remove documents cleanly from the interface.
 
 ## WEB-08 — Chat message interface
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** WEB-02
 

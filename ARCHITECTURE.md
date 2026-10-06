@@ -61,6 +61,8 @@ The current backend ingestion path is synchronous, so the post-upload refresh no
 
 Document deletion uses an inline confirmation before calling the typed delete endpoint. The UI follows a pessimistic mutation model: the document remains visible while deletion is pending and is removed from local state only after the backend confirms success. Repeated delete actions are disabled during the active request, transitional-status polling pauses to avoid stale list races, delete errors are shown next to the retained document for retry, and an active delete request is aborted if the component unmounts.
 
+The chat presentation layer is componentized independently from live RAG calls. `ChatPanel` composes reusable user/assistant message rendering, citation lists, an empty conversation state, and a controlled composer. Fixture messages currently demonstrate a complete grounded exchange with document/page references; `messages`, `onSubmit`, and `onNewChat` are exposed as component inputs so WEB-09 can replace fixture data with live API state without restructuring the presentation layer. Long message content uses overflow-safe wrapping and citations remain separate from answer text.
+
 ### FastAPI
 Exposes REST endpoints, validates requests/responses, coordinates services, and exposes health checks.
 

@@ -68,7 +68,7 @@ describe("App", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders coherent empty states before data wiring", async () => {
+  it("renders the document empty state and fixture chat exchange", async () => {
     render(<App documentClient={createDocumentClient()} />);
 
     expect(
@@ -76,9 +76,11 @@ describe("App", () => {
     ).toBeInTheDocument();
 
     expect(
-      screen.getByRole("heading", {
-        name: "Answers you can trace back to the source",
-      }),
+      screen.getByRole("article", { name: "User message" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("article", { name: "Assistant message" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Sources")).toBeInTheDocument();
   });
 });
