@@ -4,7 +4,7 @@ import { vi } from "vitest";
 import { App } from "./App";
 import type { ApiClient } from "./services/apiClient";
 
-function createDocumentClient(): ApiClient {
+function createApiClient(): ApiClient {
   return {
     listDocuments: vi.fn().mockResolvedValue({
       documents: [],
@@ -18,7 +18,14 @@ function createDocumentClient(): ApiClient {
 
 describe("App", () => {
   it("renders the document and chat workspace", async () => {
-    render(<App documentClient={createDocumentClient()} />);
+    const client = createApiClient();
+
+    render(
+      <App
+        documentClient={client}
+        chatClient={client}
+      />,
+    );
 
     expect(
       screen.getByText("AI Document Assistant"),
@@ -52,7 +59,14 @@ describe("App", () => {
   });
 
   it("exposes a keyboard skip link to the chat region", async () => {
-    render(<App documentClient={createDocumentClient()} />);
+    const client = createApiClient();
+
+    render(
+      <App
+        documentClient={client}
+        chatClient={client}
+      />,
+    );
 
     expect(
       screen.getByRole("link", { name: "Skip to chat" }),
@@ -68,19 +82,24 @@ describe("App", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the document empty state and fixture chat exchange", async () => {
-    render(<App documentClient={createDocumentClient()} />);
+  it("renders coherent empty states before user interaction", async () => {
+    const client = createApiClient();
+
+    render(
+      <App
+        documentClient={client}
+        chatClient={client}
+      />,
+    );
 
     expect(
       await screen.findByRole("heading", { name: "No documents yet" }),
     ).toBeInTheDocument();
 
     expect(
-      screen.getByRole("article", { name: "User message" }),
+      screen.getByRole("heading", {
+        name: "Answers you can trace back to the source",
+      }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("article", { name: "Assistant message" }),
-    ).toBeInTheDocument();
-    expect(screen.getByLabelText("Sources")).toBeInTheDocument();
   });
 });
