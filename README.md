@@ -46,6 +46,7 @@ Implemented:
 - Confirmed document deletion with pending/error states and local list updates after success
 - Reusable chat presentation for user/assistant messages, citations, composer, and empty state
 - Live grounded chat flow through the RAG API with pending, cancellation, sequential-question, and failure states
+- Deduplicated source chips with document/page traceability and long-filename handling
 - Predictable frontend error mapping for HTTP, validation, network, timeout, cancellation, and invalid responses
 - Frontend API-base configuration validation
 - Storage, upload, extraction, chunking, embedding, ingestion, document-read, deletion, RAG prompt, generation, retrieval, chat, and insufficient-context tests
@@ -53,7 +54,6 @@ Implemented:
 
 Planned next:
 
-- Citation presentation refinements
 - Insufficient-context and error-state UX
 - RAG evaluation fixtures and threshold calibration
 - RAG evaluation fixtures and threshold calibration
