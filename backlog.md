@@ -1380,7 +1380,7 @@ A user can ask a question in the browser and receive a grounded answer.
 
 ## WEB-10 — Citation/source UI
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** WEB-09
 
