@@ -53,7 +53,7 @@ export function ChatPanel({
   };
 
   const handleSubmit = async (question: string) => {
-    if (isSending) {
+    if (isSending || requestControllerRef.current !== null) {
       return;
     }
 
