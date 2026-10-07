@@ -265,3 +265,8 @@ M0 Bootstrap
  -> M6 Frontend
  -> M7 Quality/testing/deployment
 ```
+
+
+### Frontend accessibility behavior
+
+Core interactions are designed for keyboard and assistive-technology use. The chat composer submits with Enter and preserves Shift+Enter for multiline input. While generation is active the textbox remains focusable and becomes read-only instead of being removed from the tab order; the conversation exposes a polite live log and busy state. Document deletion moves focus into the inline confirmation, returns focus to the delete trigger on cancel, and moves focus to the upload action after successful removal. Primary controls use visible focus indicators, semantic labels, live status/error roles, reduced-motion behavior, and forced-colors fallbacks.
