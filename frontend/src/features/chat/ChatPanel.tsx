@@ -22,6 +22,7 @@ interface ChatRequestFailure {
   title: string;
   message: string;
   question: string;
+  retryable: boolean;
 }
 
 function classifyChatFailure(
@@ -36,6 +37,7 @@ function classifyChatFailure(
         message:
           "The API could not be reached. Check your connection and try again.",
         question,
+        retryable: true,
       };
     }
 
@@ -46,6 +48,7 @@ function classifyChatFailure(
         message:
           "Document search or answer generation is temporarily unavailable. Try again in a moment.",
         question,
+        retryable: true,
       };
     }
 
@@ -56,6 +59,7 @@ function classifyChatFailure(
         message:
           "The server could not complete the request. Try again.",
         question,
+        retryable: true,
       };
     }
 
@@ -64,6 +68,7 @@ function classifyChatFailure(
       title: "Could not get an answer",
       message: error.message,
       question,
+      retryable: false,
     };
   }
 
@@ -72,6 +77,7 @@ function classifyChatFailure(
     title: "Something went wrong",
     message: "The request could not be completed. Try again.",
     question,
+    retryable: true,
   };
 }
 
@@ -215,7 +221,7 @@ export function ChatPanel({
   };
 
   const handleRetry = () => {
-    if (!requestFailure) {
+    if (!requestFailure?.retryable) {
       return;
     }
 
@@ -344,14 +350,16 @@ export function ChatPanel({
                   <strong>{requestFailure.title}</strong>
                   <span>{requestFailure.message}</span>
                 </div>
-                <button
-                  className="button button-secondary chat-retry-button"
-                  type="button"
-                  disabled={composerDisabled}
-                  onClick={handleRetry}
-                >
-                  Try again
-                </button>
+                {requestFailure.retryable ? (
+                  <button
+                    className="button button-secondary chat-retry-button"
+                    type="button"
+                    disabled={composerDisabled}
+                    onClick={handleRetry}
+                  >
+                    Try again
+                  </button>
+                ) : null}
               </div>
             ) : null}
           </div>
