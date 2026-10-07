@@ -8,31 +8,97 @@ import {
 import { ChatComposer } from "./ChatComposer";
 import { ChatEmptyState } from "./ChatEmptyState";
 import { ChatMessage } from "./ChatMessage";
+import type { SearchableDocumentsState } from "../../types/app";
 import type { ChatMessageModel } from "./chatTypes";
 
-function chatRequestError(error: unknown): string {
+type ChatRequestFailureKind =
+  | "network"
+  | "service"
+  | "server"
+  | "request";
+
+interface ChatRequestFailure {
+  kind: ChatRequestFailureKind;
+  title: string;
+  message: string;
+  question: string;
+  retryable: boolean;
+}
+
+function classifyChatFailure(
+  error: unknown,
+  question: string,
+): ChatRequestFailure {
   if (error instanceof ApiClientError) {
-    return error.message;
+    if (error.kind === "network") {
+      return {
+        kind: "network",
+        title: "Connection problem",
+        message:
+          "The API could not be reached. Check your connection and try again.",
+        question,
+        retryable: true,
+      };
+    }
+
+    if (error.status === 503) {
+      return {
+        kind: "service",
+        title: "AI service temporarily unavailable",
+        message:
+          "Document search or answer generation is temporarily unavailable. Try again in a moment.",
+        question,
+        retryable: true,
+      };
+    }
+
+    if (error.status !== null && error.status >= 500) {
+      return {
+        kind: "server",
+        title: "Server error",
+        message:
+          "The server could not complete the request. Try again.",
+        question,
+        retryable: true,
+      };
+    }
+
+    return {
+      kind: "request",
+      title: "Could not get an answer",
+      message: error.message,
+      question,
+      retryable: false,
+    };
   }
 
-  return "Unable to get an answer";
+  return {
+    kind: "server",
+    title: "Something went wrong",
+    message: "The request could not be completed. Try again.",
+    question,
+    retryable: true,
+  };
 }
 
 export interface ChatPanelProps {
   client?: ApiClient;
   initialMessages?: ChatMessageModel[];
+  searchableDocumentsState?: SearchableDocumentsState;
 }
 
 export function ChatPanel({
   client = getApiClient(),
   initialMessages = [],
+  searchableDocumentsState = "available",
 }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessageModel[]>(
     initialMessages,
   );
   const [draft, setDraft] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [requestError, setRequestError] = useState<string | null>(null);
+  const [requestFailure, setRequestFailure] =
+    useState<ChatRequestFailure | null>(null);
   const requestControllerRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
   const messageSequenceRef = useRef(initialMessages.length);
@@ -46,32 +112,53 @@ export function ChatPanel({
     };
   }, []);
 
+  useEffect(() => {
+    if (
+      searchableDocumentsState === "unavailable" &&
+      requestControllerRef.current !== null
+    ) {
+      requestControllerRef.current.abort();
+      requestControllerRef.current = null;
+      setIsSending(false);
+    }
+  }, [searchableDocumentsState]);
+
   const nextMessageId = (role: "user" | "assistant") => {
     messageSequenceRef.current += 1;
 
     return `${role}-${messageSequenceRef.current}`;
   };
 
-  const handleSubmit = async (question: string) => {
-    if (isSending || requestControllerRef.current !== null) {
+  const submitQuestion = async (
+    question: string,
+    appendUserMessage: boolean,
+  ) => {
+    if (
+      searchableDocumentsState !== "available" ||
+      isSending ||
+      requestControllerRef.current !== null
+    ) {
       return;
     }
 
     const controller = new AbortController();
     requestControllerRef.current = controller;
 
-    const userMessage: ChatMessageModel = {
-      id: nextMessageId("user"),
-      role: "user",
-      content: question,
-    };
+    if (appendUserMessage) {
+      const userMessage: ChatMessageModel = {
+        id: nextMessageId("user"),
+        role: "user",
+        content: question,
+      };
 
-    setRequestError(null);
-    setMessages((currentMessages) => [
-      ...currentMessages,
-      userMessage,
-    ]);
-    setDraft("");
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        userMessage,
+      ]);
+      setDraft("");
+    }
+
+    setRequestFailure(null);
     setIsSending(true);
 
     try {
@@ -92,6 +179,10 @@ export function ChatPanel({
         role: "assistant",
         content: response.answer,
         sources: response.sources,
+        variant:
+          response.sources.length === 0
+            ? "insufficient-context"
+            : "standard",
       };
 
       setMessages((currentMessages) => [
@@ -113,7 +204,7 @@ export function ChatPanel({
         return;
       }
 
-      setRequestError(chatRequestError(error));
+      setRequestFailure(classifyChatFailure(error, question));
     } finally {
       if (requestControllerRef.current === controller) {
         requestControllerRef.current = null;
@@ -125,15 +216,45 @@ export function ChatPanel({
     }
   };
 
+  const handleSubmit = (question: string) => {
+    void submitQuestion(question, true);
+  };
+
+  const handleRetry = () => {
+    if (!requestFailure?.retryable) {
+      return;
+    }
+
+    void submitQuestion(requestFailure.question, false);
+  };
+
   const handleNewChat = () => {
     requestControllerRef.current?.abort();
     requestControllerRef.current = null;
     messageSequenceRef.current = 0;
     setMessages([]);
     setDraft("");
-    setRequestError(null);
+    setRequestFailure(null);
     setIsSending(false);
   };
+
+  const documentsUnavailable =
+    searchableDocumentsState === "unavailable";
+  const documentsUnknown =
+    searchableDocumentsState === "unknown";
+  const composerDisabled =
+    isSending || documentsUnavailable || documentsUnknown;
+
+  const composerPlaceholder = documentsUnavailable
+    ? "Upload a ready PDF before asking a question…"
+    : documentsUnknown
+      ? "Checking document availability…"
+      : "Ask a question about your documents…";
+
+  const showEmptyState =
+    messages.length === 0 && !isSending && !documentsUnavailable;
+  const showNoDocumentsState =
+    messages.length === 0 && !isSending && documentsUnavailable;
 
   return (
     <main className="chat-panel" id="main-content" tabIndex={-1}>
@@ -153,13 +274,30 @@ export function ChatPanel({
 
       <section
         className={
-          messages.length === 0 && !isSending
+          showEmptyState || showNoDocumentsState
             ? "conversation conversation-empty"
             : "conversation conversation-populated"
         }
         aria-label="Conversation"
       >
-        {messages.length === 0 && !isSending ? (
+        {showNoDocumentsState ? (
+          <div
+            className="chat-readiness-state"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="chat-empty-mark" aria-hidden="true">
+              <span>PDF</span>
+            </div>
+            <div>
+              <h2>No searchable documents yet</h2>
+              <p>
+                Upload a PDF and wait until its status is Ready before
+                asking questions.
+              </p>
+            </div>
+          </div>
+        ) : showEmptyState ? (
           <ChatEmptyState onSuggestionSelect={setDraft} />
         ) : (
           <div className="message-list">
@@ -189,10 +327,39 @@ export function ChatPanel({
               </div>
             ) : null}
 
-            {requestError ? (
-              <div className="chat-request-error" role="alert">
-                <strong>Could not get an answer.</strong>
-                <span>{requestError}</span>
+            {documentsUnavailable ? (
+              <div
+                className="chat-readiness-inline"
+                role="status"
+                aria-live="polite"
+              >
+                <strong>No searchable documents available.</strong>
+                <span>
+                  Upload or finish processing a PDF before asking
+                  another question.
+                </span>
+              </div>
+            ) : null}
+
+            {requestFailure ? (
+              <div
+                className={`chat-request-error error-${requestFailure.kind}`}
+                role="alert"
+              >
+                <div>
+                  <strong>{requestFailure.title}</strong>
+                  <span>{requestFailure.message}</span>
+                </div>
+                {requestFailure.retryable ? (
+                  <button
+                    className="button button-secondary chat-retry-button"
+                    type="button"
+                    disabled={composerDisabled}
+                    onClick={handleRetry}
+                  >
+                    Try again
+                  </button>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -203,7 +370,8 @@ export function ChatPanel({
         value={draft}
         onChange={setDraft}
         onSubmit={handleSubmit}
-        disabled={isSending}
+        disabled={composerDisabled}
+        placeholder={composerPlaceholder}
       />
     </main>
   );
