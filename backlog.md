@@ -1413,7 +1413,7 @@ Every grounded answer clearly tells the user where supporting information came f
 
 ## WEB-11 — Insufficient-context and error UX
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** WEB-09, API-18/API-20
 
