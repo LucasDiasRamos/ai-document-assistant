@@ -268,6 +268,57 @@ describe("ChatPanel", () => {
     expect(sendChat).not.toHaveBeenCalled();
   });
 
+  it("does not offer retry for deterministic client errors", async () => {
+    const sendChat = vi.fn().mockRejectedValue(
+      new ApiClientError("Question is too long", {
+        kind: "http",
+        status: 422,
+      }),
+    );
+
+    render(<ChatPanel client={createClient(sendChat)} />);
+
+    submitQuestion("Invalid question");
+
+    const alert = await screen.findByRole("alert");
+
+    expect(alert).toHaveTextContent("Could not get an answer");
+    expect(alert).toHaveTextContent("Question is too long");
+    expect(
+      screen.queryByRole("button", { name: "Try again" }),
+    ).not.toBeInTheDocument();
+    expect(sendChat).toHaveBeenCalledTimes(1);
+  });
+
+  it("allows chat when document readiness is unverified by a truncated list", async () => {
+    const sendChat = vi.fn().mockResolvedValue({
+      answer: "An older processed document may still support this answer.",
+      sources: [
+        {
+          document_id: 77,
+          document: "older-ready.pdf",
+          page: 2,
+        },
+      ],
+    });
+
+    render(
+      <ChatPanel
+        client={createClient(sendChat)}
+        searchableDocumentsState="unverified"
+      />,
+    );
+
+    submitQuestion("Search all processed documents");
+
+    expect(sendChat).toHaveBeenCalledTimes(1);
+    expect(
+      await screen.findByText(
+        "An older processed document may still support this answer.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("supports multiple sequential questions", async () => {
     const sendChat = vi
       .fn()
