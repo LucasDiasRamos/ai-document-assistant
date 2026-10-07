@@ -185,16 +185,24 @@ export function DocumentsPanel({
       return;
     }
 
+    const hasVisibleProcessedDocument = documents.some(
+      (document) => document.status === "processed",
+    );
+
+    if (hasVisibleProcessedDocument) {
+      onSearchableStateChange("available");
+      return;
+    }
+
     onSearchableStateChange(
-      documents.some((document) => document.status === "processed")
-        ? "available"
-        : "unavailable",
+      total > documents.length ? "unverified" : "unavailable",
     );
   }, [
     documents,
     errorMessage,
     isLoading,
     onSearchableStateChange,
+    total,
   ]);
 
   const shouldPollStatuses =
