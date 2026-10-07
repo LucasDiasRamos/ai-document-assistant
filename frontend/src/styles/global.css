@@ -741,14 +741,26 @@ svg {
   border-top: 1px solid var(--border);
 }
 
-.citation-label {
-  display: block;
+.citation-heading {
   margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.citation-label {
   color: var(--text-muted);
   font-size: 0.68rem;
   font-weight: 750;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.citation-count {
+  color: #8186a6;
+  font-size: 0.68rem;
+  font-weight: 650;
 }
 
 .citation-list {
@@ -762,8 +774,8 @@ svg {
 
 .citation-item {
   min-width: 0;
-  max-width: 100%;
-  padding: 0.38rem 0.55rem;
+  max-width: min(100%, 22rem);
+  padding: 0.42rem 0.58rem;
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
@@ -776,6 +788,7 @@ svg {
 
 .citation-document {
   min-width: 0;
+  max-width: 16rem;
   overflow: hidden;
   font-weight: 700;
   text-overflow: ellipsis;
@@ -1108,7 +1121,12 @@ svg {
 
   .citation-item {
     width: 100%;
+    max-width: 100%;
     justify-content: space-between;
+  }
+
+  .citation-document {
+    max-width: min(70vw, 16rem);
   }
 
   .suggestion-list {
