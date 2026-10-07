@@ -10,6 +10,7 @@ import {
   getApiClient,
   type ApiClient,
 } from "../../services/apiClient";
+import type { SearchableDocumentsState } from "../../types/app";
 import type {
   DocumentStatus,
   DocumentSummary,
@@ -96,10 +97,14 @@ function DocumentIcon() {
 
 export interface DocumentsPanelProps {
   client?: ApiClient;
+  onSearchableStateChange?: (
+    state: SearchableDocumentsState,
+  ) => void;
 }
 
 export function DocumentsPanel({
   client = getApiClient(),
+  onSearchableStateChange,
 }: DocumentsPanelProps) {
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
   const [total, setTotal] = useState(0);
@@ -169,6 +174,28 @@ export function DocumentsPanel({
       controller.abort();
     };
   }, [client, reloadKey]);
+
+  useEffect(() => {
+    if (!onSearchableStateChange) {
+      return;
+    }
+
+    if (isLoading || errorMessage !== null) {
+      onSearchableStateChange("unknown");
+      return;
+    }
+
+    onSearchableStateChange(
+      documents.some((document) => document.status === "processed")
+        ? "available"
+        : "unavailable",
+    );
+  }, [
+    documents,
+    errorMessage,
+    isLoading,
+    onSearchableStateChange,
+  ]);
 
   const shouldPollStatuses =
     !isLoading &&
