@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 
 import { App } from "./App";
@@ -50,10 +50,6 @@ describe("App", () => {
     ).toBeInTheDocument();
 
     expect(
-      screen.getByRole("button", { name: "Send question" }),
-    ).toBeInTheDocument();
-
-    expect(
       await screen.findByRole("heading", { name: "No documents yet" }),
     ).toBeInTheDocument();
   });
@@ -82,7 +78,7 @@ describe("App", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders coherent empty states before user interaction", async () => {
+  it("guides the user when the knowledge base has no ready documents", async () => {
     const client = createApiClient();
 
     render(
@@ -93,13 +89,49 @@ describe("App", () => {
     );
 
     expect(
-      await screen.findByRole("heading", { name: "No documents yet" }),
+      await screen.findByRole("heading", {
+        name: "No searchable documents yet",
+      }),
     ).toBeInTheDocument();
 
     expect(
-      screen.getByRole("heading", {
-        name: "Answers you can trace back to the source",
+      screen.getByRole("textbox", {
+        name: "Ask a question about your documents",
       }),
-    ).toBeInTheDocument();
+    ).toBeDisabled();
+  });
+
+  it("enables chat when at least one document is ready", async () => {
+    const client = createApiClient();
+    client.listDocuments = vi.fn().mockResolvedValue({
+      documents: [
+        {
+          id: 1,
+          original_filename: "ready.pdf",
+          status: "processed",
+          error_message: null,
+          created_at: "2026-10-06T12:00:00Z",
+          updated_at: "2026-10-06T12:01:00Z",
+        },
+      ],
+      total: 1,
+    });
+
+    render(
+      <App
+        documentClient={client}
+        chatClient={client}
+      />,
+    );
+
+    expect(await screen.findByText("ready.pdf")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("textbox", {
+          name: "Ask a question about your documents",
+        }),
+      ).toBeEnabled();
+    });
   });
 });
