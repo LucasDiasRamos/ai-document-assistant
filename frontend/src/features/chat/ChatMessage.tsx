@@ -10,7 +10,15 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
   return (
     <article
-      className={`chat-message message-${message.role}`}
+      className={[
+        "chat-message",
+        `message-${message.role}`,
+        message.variant === "insufficient-context"
+          ? "message-insufficient-context"
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       aria-label={isAssistant ? "Assistant message" : "User message"}
     >
       <div className="message-avatar" aria-hidden="true">
@@ -21,6 +29,13 @@ export function ChatMessage({ message }: ChatMessageProps) {
         <span className="message-author">
           {isAssistant ? "Assistant" : "You"}
         </span>
+        {isAssistant &&
+        message.variant === "insufficient-context" ? (
+          <span className="message-state-label">
+            Not found in documents
+          </span>
+        ) : null}
+
         <p className="message-content">{message.content}</p>
 
         {isAssistant && message.sources ? (
