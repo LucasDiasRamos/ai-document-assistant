@@ -48,6 +48,7 @@ Implemented:
 - Live grounded chat flow through the RAG API with pending, cancellation, sequential-question, and failure states
 - Deduplicated source chips with document/page traceability and long-filename handling
 - Distinct chat UX for insufficient document context, no ready documents, offline failures, server failures, and temporary AI-service outages
+- Keyboard-first and screen-reader-friendly interaction for chat, async states, upload, and document deletion
 - Predictable frontend error mapping for HTTP, validation, network, timeout, cancellation, and invalid responses
 - Frontend API-base configuration validation
 - Storage, upload, extraction, chunking, embedding, ingestion, document-read, deletion, RAG prompt, generation, retrieval, chat, and insufficient-context tests
@@ -55,7 +56,6 @@ Implemented:
 
 Planned next:
 
-- Accessibility and keyboard hardening
 - Frontend regression-suite consolidation
 - RAG evaluation fixtures and threshold calibration
 
