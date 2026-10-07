@@ -836,4 +836,40 @@ describe("DocumentsPanel", () => {
 
     expect(uploadSignal?.aborted).toBe(true);
   });
+  it("does not mark a truncated document page as unavailable", async () => {
+    const documents = Array.from({ length: 50 }, (_, index) =>
+      documentFixture({
+        id: index + 1,
+        original_filename: `failed-${index + 1}.pdf`,
+        status: "failed",
+      }),
+    );
+    const onSearchableStateChange = vi.fn();
+    const client = clientWithList(
+      vi.fn().mockResolvedValue({
+        documents,
+        total: 51,
+      }),
+    );
+
+    render(
+      <DocumentsPanel
+        client={client}
+        onSearchableStateChange={onSearchableStateChange}
+      />,
+    );
+
+    await screen.findByText("failed-1.pdf");
+
+    await waitFor(() => {
+      expect(onSearchableStateChange).toHaveBeenLastCalledWith(
+        "unverified",
+      );
+    });
+
+    expect(onSearchableStateChange).not.toHaveBeenCalledWith(
+      "unavailable",
+    );
+  });
+
 });
