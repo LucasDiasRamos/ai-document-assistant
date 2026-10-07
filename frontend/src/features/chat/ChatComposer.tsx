@@ -1,10 +1,14 @@
-import type { FormEvent } from "react";
+import type {
+  FormEvent,
+  KeyboardEvent,
+} from "react";
 
 export interface ChatComposerProps {
   value: string;
   onChange: (value: string) => void;
   onSubmit?: (question: string) => void;
   disabled?: boolean;
+  busy?: boolean;
   placeholder?: string;
 }
 
@@ -13,19 +17,39 @@ export function ChatComposer({
   onChange,
   onSubmit,
   disabled = false,
+  busy = false,
   placeholder = "Ask a question about your documents…",
 }: ChatComposerProps) {
   const trimmedQuestion = value.trim();
-  const canSubmit = !disabled && trimmedQuestion.length > 0;
+  const canSubmit =
+    !disabled && !busy && trimmedQuestion.length > 0;
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
+  const submitCurrentQuestion = () => {
     if (!canSubmit) {
       return;
     }
 
     onSubmit?.(trimmedQuestion);
+  };
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    submitCurrentQuestion();
+  };
+
+  const handleKeyDown = (
+    event: KeyboardEvent<HTMLTextAreaElement>,
+  ) => {
+    if (
+      event.key !== "Enter" ||
+      event.shiftKey ||
+      event.nativeEvent.isComposing
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    submitCurrentQuestion();
   };
 
   return (
@@ -37,19 +61,27 @@ export function ChatComposer({
       <label className="sr-only" htmlFor="question">
         Ask a question about your documents
       </label>
+      <span className="sr-only" id="chat-composer-hint">
+        Press Enter to send. Press Shift+Enter for a new line.
+      </span>
       <textarea
         id="question"
         name="question"
         rows={1}
         value={value}
         disabled={disabled}
+        readOnly={busy}
+        aria-busy={busy}
+        aria-describedby="chat-composer-hint"
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
+        onKeyDown={handleKeyDown}
       />
       <button
         className="send-button"
         type="submit"
         aria-label="Send question"
+        aria-busy={busy}
         disabled={!canSubmit}
       >
         <svg viewBox="0 0 24 24" aria-hidden="true">
