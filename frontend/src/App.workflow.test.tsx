@@ -139,11 +139,17 @@ describe("primary frontend workflow", () => {
       screen.getByRole("button", { name: "Delete" }),
     );
 
-    await waitFor(() => {
-      expect(
-        screen.queryByText("portfolio-demo.pdf"),
-      ).not.toBeInTheDocument();
-    });
+    expect(
+      await screen.findByRole("heading", {
+        name: "No documents yet",
+      }),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.queryByRole("button", {
+        name: "Delete portfolio-demo.pdf",
+      }),
+    ).not.toBeInTheDocument();
 
     expect(deleteDocument).toHaveBeenCalledWith(
       1,
@@ -153,9 +159,9 @@ describe("primary frontend workflow", () => {
     );
 
     expect(
-      await screen.findByRole("heading", {
-        name: "No searchable documents yet",
-      }),
+      await screen.findByText(
+        "No searchable documents available.",
+      ),
     ).toBeInTheDocument();
     expect(questionInput).toBeDisabled();
   });
