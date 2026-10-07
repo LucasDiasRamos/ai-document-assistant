@@ -5,6 +5,7 @@ export interface ChatComposerProps {
   onChange: (value: string) => void;
   onSubmit?: (question: string) => void;
   disabled?: boolean;
+  placeholder?: string;
 }
 
 export function ChatComposer({
@@ -12,6 +13,7 @@ export function ChatComposer({
   onChange,
   onSubmit,
   disabled = false,
+  placeholder = "Ask a question about your documents…",
 }: ChatComposerProps) {
   const trimmedQuestion = value.trim();
   const canSubmit = !disabled && trimmedQuestion.length > 0;
@@ -41,7 +43,7 @@ export function ChatComposer({
         rows={1}
         value={value}
         disabled={disabled}
-        placeholder="Ask a question about your documents…"
+        placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
       />
       <button
