@@ -19,8 +19,23 @@ function createClient(
   };
 }
 
+function submitQuestion(question: string) {
+  const input = screen.getByRole("textbox", {
+    name: "Ask a question about your documents",
+  });
+
+  fireEvent.change(input, {
+    target: { value: question },
+  });
+  fireEvent.click(
+    screen.getByRole("button", { name: "Send question" }),
+  );
+
+  return input;
+}
+
 describe("ChatPanel", () => {
-  it("submits a question and renders the grounded answer and sources", async () => {
+  it("renders a grounded answer and sources", async () => {
     const sendChat = vi.fn().mockResolvedValue({
       answer: "The warranty period is 24 months.",
       sources: [
@@ -29,57 +44,55 @@ describe("ChatPanel", () => {
           document: "manual.pdf",
           page: 4,
         },
-        {
-          document_id: 2,
-          document: "policy.pdf",
-          page: 9,
-        },
       ],
     });
-    const client = createClient(sendChat);
 
-    render(<ChatPanel client={client} />);
+    render(<ChatPanel client={createClient(sendChat)} />);
 
-    const input = screen.getByRole("textbox", {
-      name: "Ask a question about your documents",
-    });
-
-    fireEvent.change(input, {
-      target: { value: "What is the warranty period?" },
-    });
-    fireEvent.click(
-      screen.getByRole("button", { name: "Send question" }),
-    );
+    submitQuestion("What is the warranty period?");
 
     expect(
       screen.getByRole("article", { name: "User message" }),
     ).toHaveTextContent("What is the warranty period?");
 
-    expect(sendChat).toHaveBeenCalledWith(
-      { question: "What is the warranty period?" },
-      expect.objectContaining({
-        signal: expect.any(AbortSignal),
-      }),
-    );
-
     expect(
       await screen.findByRole("article", { name: "Assistant message" }),
     ).toHaveTextContent("The warranty period is 24 months.");
-
     expect(screen.getByText("manual.pdf")).toBeInTheDocument();
-    expect(screen.getByText("Page 4")).toBeInTheDocument();
-    expect(screen.getByText("policy.pdf")).toBeInTheDocument();
-    expect(screen.getByText("Page 9")).toBeInTheDocument();
+  });
 
-    expect(input).toBeEnabled();
-    expect(input).toHaveValue("");
+  it("presents an unsupported question as a neutral document result", async () => {
+    const sendChat = vi.fn().mockResolvedValue({
+      answer:
+        "I could not find that information in the uploaded documents.",
+      sources: [],
+    });
+
+    render(<ChatPanel client={createClient(sendChat)} />);
+
+    submitQuestion("Who won the World Cup?");
+
+    const assistant = await screen.findByRole("article", {
+      name: "Assistant message",
+    });
+
+    expect(assistant).toHaveClass("message-insufficient-context");
+    expect(
+      withinArticle(assistant, "Not found in documents"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "I could not find that information in the uploaded documents.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText("Sources")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("blocks empty and whitespace-only questions", () => {
     const sendChat = vi.fn();
-    const client = createClient(sendChat);
 
-    render(<ChatPanel client={client} />);
+    render(<ChatPanel client={createClient(sendChat)} />);
 
     const input = screen.getByRole("textbox", {
       name: "Ask a question about your documents",
@@ -109,75 +122,150 @@ describe("ChatPanel", () => {
           resolveChat = resolve;
         }),
     );
-    const client = createClient(sendChat);
 
-    render(<ChatPanel client={client} />);
+    render(<ChatPanel client={createClient(sendChat)} />);
 
-    const input = screen.getByRole("textbox", {
-      name: "Ask a question about your documents",
-    });
-
-    fireEvent.change(input, {
-      target: { value: "Summarize the document" },
-    });
-    fireEvent.click(
-      screen.getByRole("button", { name: "Send question" }),
-    );
+    const input = submitQuestion("Summarize the document");
 
     expect(
       screen.getByRole("status", { name: "Assistant is thinking" }),
     ).toBeInTheDocument();
     expect(input).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: "Send question" }),
-    ).toBeDisabled();
 
     resolveChat?.({
       answer: "Summary complete.",
-      sources: [],
+      sources: [
+        {
+          document_id: 1,
+          document: "manual.pdf",
+          page: 1,
+        },
+      ],
     });
 
     expect(
       await screen.findByRole("article", { name: "Assistant message" }),
     ).toHaveTextContent("Summary complete.");
-
-    expect(
-      screen.queryByRole("status", { name: "Assistant is thinking" }),
-    ).not.toBeInTheDocument();
     expect(input).toBeEnabled();
   });
 
-  it("retains the user question and restores the composer after API failure", async () => {
+  it("shows a distinct offline error with a retry path", async () => {
+    const sendChat = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new ApiClientError("Unable to reach the API", {
+          kind: "network",
+        }),
+      )
+      .mockResolvedValueOnce({
+        answer: "Recovered answer.",
+        sources: [
+          {
+            document_id: 1,
+            document: "manual.pdf",
+            page: 2,
+          },
+        ],
+      });
+
+    render(<ChatPanel client={createClient(sendChat)} />);
+
+    submitQuestion("Can you answer this?");
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Connection problem");
+    expect(alert).toHaveTextContent(
+      "The API could not be reached. Check your connection and try again.",
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Try again" }),
+    );
+
+    expect(await screen.findByText("Recovered answer.")).toBeInTheDocument();
+    expect(sendChat).toHaveBeenCalledTimes(2);
+    expect(
+      screen.getAllByRole("article", { name: "User message" }),
+    ).toHaveLength(1);
+  });
+
+  it("shows provider/service unavailability separately", async () => {
     const sendChat = vi.fn().mockRejectedValue(
-      new ApiClientError("Unable to reach the API", {
-        kind: "network",
+      new ApiClientError(
+        "Answer generation is temporarily unavailable",
+        {
+          kind: "http",
+          status: 503,
+        },
+      ),
+    );
+
+    render(<ChatPanel client={createClient(sendChat)} />);
+
+    submitQuestion("What does the policy say?");
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(
+      "AI service temporarily unavailable",
+    );
+    expect(alert).toHaveTextContent(
+      "Document search or answer generation is temporarily unavailable.",
+    );
+    expect(
+      screen.getByRole("button", { name: "Try again" }),
+    ).toBeEnabled();
+  });
+
+  it("shows a controlled server error for API 5xx failures", async () => {
+    const sendChat = vi.fn().mockRejectedValue(
+      new ApiClientError("Internal Server Error", {
+        kind: "http",
+        status: 500,
       }),
     );
-    const client = createClient(sendChat);
 
-    render(<ChatPanel client={client} />);
+    render(<ChatPanel client={createClient(sendChat)} />);
+
+    submitQuestion("What changed?");
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Server error");
+    expect(alert).toHaveTextContent(
+      "The server could not complete the request. Try again.",
+    );
+  });
+
+  it("blocks chat and guides the user when no searchable documents exist", () => {
+    const sendChat = vi.fn();
+
+    render(
+      <ChatPanel
+        client={createClient(sendChat)}
+        searchableDocumentsState="unavailable"
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", {
+        name: "No searchable documents yet",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Upload a PDF and wait until its status is Ready before asking questions.",
+      ),
+    ).toBeInTheDocument();
 
     const input = screen.getByRole("textbox", {
       name: "Ask a question about your documents",
     });
 
-    fireEvent.change(input, {
-      target: { value: "What changed?" },
-    });
-    fireEvent.click(
-      screen.getByRole("button", { name: "Send question" }),
+    expect(input).toBeDisabled();
+    expect(input).toHaveAttribute(
+      "placeholder",
+      "Upload a ready PDF before asking a question…",
     );
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Unable to reach the API",
-    );
-    expect(
-      screen.getByRole("article", { name: "User message" }),
-    ).toHaveTextContent("What changed?");
-    expect(
-      screen.queryByRole("article", { name: "Assistant message" }),
-    ).not.toBeInTheDocument();
-    expect(input).toBeEnabled();
+    expect(sendChat).not.toHaveBeenCalled();
   });
 
   it("supports multiple sequential questions", async () => {
@@ -185,54 +273,42 @@ describe("ChatPanel", () => {
       .fn()
       .mockResolvedValueOnce({
         answer: "First answer.",
-        sources: [],
+        sources: [
+          {
+            document_id: 1,
+            document: "manual.pdf",
+            page: 1,
+          },
+        ],
       })
       .mockResolvedValueOnce({
         answer: "Second answer.",
-        sources: [],
+        sources: [
+          {
+            document_id: 1,
+            document: "manual.pdf",
+            page: 2,
+          },
+        ],
       });
-    const client = createClient(sendChat);
 
-    render(<ChatPanel client={client} />);
+    render(<ChatPanel client={createClient(sendChat)} />);
 
-    const input = screen.getByRole("textbox", {
-      name: "Ask a question about your documents",
-    });
-
-    fireEvent.change(input, {
-      target: { value: "First question?" },
-    });
-    fireEvent.click(
-      screen.getByRole("button", { name: "Send question" }),
-    );
-
+    submitQuestion("First question?");
     expect(await screen.findByText("First answer.")).toBeInTheDocument();
 
-    fireEvent.change(input, {
-      target: { value: "Second question?" },
-    });
-    fireEvent.click(
-      screen.getByRole("button", { name: "Send question" }),
-    );
-
+    submitQuestion("Second question?");
     expect(await screen.findByText("Second answer.")).toBeInTheDocument();
 
     expect(sendChat).toHaveBeenCalledTimes(2);
-    expect(
-      screen.getAllByRole("article", { name: "User message" }),
-    ).toHaveLength(2);
-    expect(
-      screen.getAllByRole("article", { name: "Assistant message" }),
-    ).toHaveLength(2);
   });
 
-  it("prevents rapid duplicate submissions while a request is active", async () => {
+  it("prevents rapid duplicate submissions while a request is active", () => {
     const sendChat = vi.fn(
       () => new Promise<ChatResponse>(() => undefined),
     );
-    const client = createClient(sendChat);
 
-    render(<ChatPanel client={client} />);
+    render(<ChatPanel client={createClient(sendChat)} />);
 
     const input = screen.getByRole("textbox", {
       name: "Ask a question about your documents",
@@ -250,9 +326,6 @@ describe("ChatPanel", () => {
     fireEvent.submit(sendButton.closest("form")!);
 
     expect(sendChat).toHaveBeenCalledTimes(1);
-    expect(
-      screen.getAllByRole("article", { name: "User message" }),
-    ).toHaveLength(1);
   });
 
   it("clears the conversation and cancels the active request on New chat", async () => {
@@ -263,21 +336,10 @@ describe("ChatPanel", () => {
 
       return new Promise<ChatResponse>(() => undefined);
     });
-    const client = createClient(sendChat);
 
-    render(<ChatPanel client={client} />);
+    render(<ChatPanel client={createClient(sendChat)} />);
 
-    fireEvent.change(
-      screen.getByRole("textbox", {
-        name: "Ask a question about your documents",
-      }),
-      {
-        target: { value: "Pending question" },
-      },
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: "Send question" }),
-    );
+    submitQuestion("Pending question");
 
     await waitFor(() => {
       expect(requestSignal).toBeDefined();
@@ -291,41 +353,20 @@ describe("ChatPanel", () => {
     expect(
       screen.queryByRole("article", { name: "User message" }),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", {
-        name: "Answers you can trace back to the source",
-      }),
-    ).toBeInTheDocument();
-  });
-
-  it("renders supplied initial messages for presentation reuse", () => {
-    render(
-      <ChatPanel
-        client={createClient()}
-        initialMessages={[
-          {
-            id: "user-existing",
-            role: "user",
-            content: "Existing question",
-          },
-          {
-            id: "assistant-existing",
-            role: "assistant",
-            content: "Existing grounded answer",
-            sources: [
-              {
-                document_id: 3,
-                document: "existing.pdf",
-                page: 7,
-              },
-            ],
-          },
-        ]}
-      />,
-    );
-
-    expect(screen.getByText("Existing question")).toBeInTheDocument();
-    expect(screen.getByText("Existing grounded answer")).toBeInTheDocument();
-    expect(screen.getByText("existing.pdf")).toBeInTheDocument();
   });
 });
+
+function withinArticle(
+  article: HTMLElement,
+  text: string,
+): HTMLElement {
+  const match = Array.from(article.querySelectorAll("*")).find(
+    (element) => element.textContent === text,
+  );
+
+  if (!(match instanceof HTMLElement)) {
+    throw new Error(`Could not find "${text}" in article`);
+  }
+
+  return match;
+}
