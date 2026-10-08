@@ -342,10 +342,48 @@ def test_ingestion_failure_logs_safe_technical_context(
     record = next(
         record
         for record in caplog.records
-        if record.getMessage().startswith("Document ingestion failed")
+        if getattr(record, "event", None) == "document.processing.failed"
     )
     assert record.document_id == document.id
-    assert "EmbeddingProviderError" in record.error_types
-    assert f"document_id={document.id}" in record.getMessage()
-    assert "EmbeddingProviderError" in record.getMessage()
+    assert record.status == "failed"
+    assert "EmbeddingProviderError" in record.error_type
+    assert record.getMessage() == "document.processing.failed"
     assert "provider-secret-detail" not in caplog.text
+    assert "/tmp/stored.pdf" not in caplog.text
+
+
+
+def test_successful_ingestion_logs_chunk_count_without_content(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    db = FakeSession()
+    document = make_document()
+    provider = FakeEmbeddingProvider(
+        vectors=[embedding(0.1), embedding(0.2)]
+    )
+
+    with caplog.at_level(
+        logging.INFO,
+        logger="app.services.ingestion_service",
+    ):
+        process_document(
+            db,
+            document,
+            provider,
+            page_extractor=extracted_pages,
+            page_chunker=prepared_chunks,
+        )
+
+    success = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None)
+        == "document.processing.succeeded"
+    )
+
+    assert success.document_id == document.id
+    assert success.status == "processed"
+    assert success.chunk_count == 2
+    assert "first chunk" not in caplog.text
+    assert "second chunk" not in caplog.text
+    assert "/tmp/stored.pdf" not in caplog.text
