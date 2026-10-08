@@ -23,6 +23,9 @@ from app.services.retrieval_service import retrieve_relevant_chunks
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "rag_eval"
 CASES_PATH = FIXTURE_ROOT / "cases.json"
+EVALUATION_CASES = json.loads(
+    CASES_PATH.read_text(encoding="utf-8")
+)
 
 CONCEPT_DIMENSIONS = {
     "remote": 0,
@@ -59,7 +62,7 @@ class EvaluationEmbeddingProvider:
 
 @pytest.fixture(scope="module")
 def cases() -> dict:
-    return json.loads(CASES_PATH.read_text(encoding="utf-8"))
+    return EVALUATION_CASES
 
 
 @pytest.fixture(scope="module")
@@ -127,13 +130,18 @@ def ranked_chunks(
     )
 
 
-@pytest.mark.parametrize("case_index", range(6))
+@pytest.mark.parametrize(
+    "case",
+    EVALUATION_CASES["known_questions"],
+    ids=lambda case: (
+        f"{case['expected_document']}-"
+        f"page-{case['expected_pages'][0]}"
+    ),
+)
 def test_known_questions_retrieve_expected_page_in_memory(
-    cases: dict,
     corpus_chunks: list[tuple[str, TextChunk]],
-    case_index: int,
+    case: dict,
 ) -> None:
-    case = cases["known_questions"][case_index]
     provider = EvaluationEmbeddingProvider()
 
     top_results = ranked_chunks(
@@ -149,13 +157,15 @@ def test_known_questions_retrieve_expected_page_in_memory(
     )
 
 
-@pytest.mark.parametrize("case_index", range(2))
+@pytest.mark.parametrize(
+    "case",
+    EVALUATION_CASES["unsupported_questions"],
+    ids=["unsupported-ocean", "unsupported-football"],
+)
 def test_unsupported_questions_fail_support_threshold_in_memory(
-    cases: dict,
     corpus_chunks: list[tuple[str, TextChunk]],
-    case_index: int,
+    case: dict,
 ) -> None:
-    case = cases["unsupported_questions"][case_index]
     provider = EvaluationEmbeddingProvider()
 
     ranked = ranked_chunks(
@@ -186,14 +196,14 @@ def test_fixture_pdf_page_mapping_is_stable(cases: dict) -> None:
     for document in cases["documents"]:
         pages = extract_pdf_pages(FIXTURE_ROOT / document["file"])
 
-        assert tuple(
-            page.text.splitlines()[0].split(
-                expected_first_lines[document["file"]][index],
-                1,
-            )[0]
-            + expected_first_lines[document["file"]][index]
-            for index, page in enumerate(pages)
-        ) == expected_first_lines[document["file"]]
+        assert len(pages) == len(
+            expected_first_lines[document["file"]]
+        )
+
+        for index, page in enumerate(pages):
+            assert page.text.startswith(
+                expected_first_lines[document["file"]][index]
+            )
 
 
 def test_pgvector_evaluation_matches_expected_pages_when_database_available(
