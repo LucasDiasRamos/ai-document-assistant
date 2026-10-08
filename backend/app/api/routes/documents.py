@@ -4,7 +4,6 @@ from fastapi import (
     APIRouter,
     Depends,
     File,
-    HTTPException,
     Query,
     Response,
     UploadFile,
@@ -13,6 +12,7 @@ from fastapi import (
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_embedding_provider_dependency
+from app.api.errors import APIErrorCode, APIException
 from app.core.database import get_db
 from app.schemas.document import (
     APIError,
@@ -27,6 +27,8 @@ from app.services.document_service import (
     DocumentFileCleanupError,
     DocumentTooLargeError,
     DocumentUploadValidationError,
+    InvalidPdfSignatureError,
+    UnsupportedDocumentTypeError,
     create_uploaded_document,
     delete_document,
     get_document_by_id,
@@ -81,23 +83,36 @@ def upload_document(
             embedding_provider,
         )
     except DocumentTooLargeError as exc:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            code=APIErrorCode.UPLOAD_TOO_LARGE,
+            detail=str(exc),
+        ) from exc
+    except (
+        UnsupportedDocumentTypeError,
+        InvalidPdfSignatureError,
+    ) as exc:
+        raise APIException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code=APIErrorCode.UNSUPPORTED_FILE,
             detail=str(exc),
         ) from exc
     except DocumentUploadValidationError as exc:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_400_BAD_REQUEST,
+            code=APIErrorCode.VALIDATION_ERROR,
             detail=str(exc),
         ) from exc
     except DocumentFailureStateError as exc:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code=APIErrorCode.PROCESSING_FAILED,
             detail="Document processing state could not be persisted",
         ) from exc
     except (PdfExtractionError, DocumentIngestionError) as exc:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            code=APIErrorCode.PROCESSING_FAILED,
             detail=(
                 document.error_message
                 if document is not None
@@ -105,8 +120,9 @@ def upload_document(
             ),
         ) from exc
     except EmbeddingError as exc:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            code=APIErrorCode.PROVIDER_UNAVAILABLE,
             detail=(
                 document.error_message
                 if document is not None
@@ -154,8 +170,9 @@ def read_document(
     document = get_document_by_id(db, document_id)
 
     if document is None:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
+            code=APIErrorCode.DOCUMENT_NOT_FOUND,
             detail="Document not found",
         )
 
@@ -191,8 +208,9 @@ def remove_document(
             storage=storage,
         )
     except DocumentFileCleanupError as exc:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code=APIErrorCode.INTERNAL_ERROR,
             detail="Document deleted, but stored file cleanup failed",
         ) from exc
 
