@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 from pathlib import Path
+import logging
 
 import pymupdf
 import pytest
@@ -245,3 +246,76 @@ def test_upload_processing_failure_uses_safe_error_contract(
         "code": "processing_failed",
     }
     assert "/tmp/secret.pdf" not in response.text
+
+
+
+def test_upload_logs_start_and_finish_without_filename_or_content(
+    client: TestClient,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with caplog.at_level(
+        logging.INFO,
+        logger="app.api.routes.documents",
+    ):
+        response = client.post(
+            "/api/documents",
+            files={
+                "file": (
+                    "sensitive-customer-file.pdf",
+                    PDF_BYTES,
+                    "application/pdf",
+                )
+            },
+        )
+
+    assert response.status_code == 201
+
+    events = [
+        getattr(record, "event", None)
+        for record in caplog.records
+        if record.name == "app.api.routes.documents"
+    ]
+    assert "document.upload.started" in events
+    assert "document.upload.finished" in events
+
+    finished = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "document.upload.finished"
+    )
+    assert finished.document_id == 1
+    assert finished.status == "processed"
+    assert "sensitive-customer-file.pdf" not in caplog.text
+    assert "Portfolio document content" not in caplog.text
+
+
+def test_rejected_upload_still_logs_finished_event(
+    client: TestClient,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with caplog.at_level(
+        logging.INFO,
+        logger="app.api.routes.documents",
+    ):
+        response = client.post(
+            "/api/documents",
+            files={
+                "file": (
+                    "not-a-pdf.txt",
+                    b"private-content",
+                    "text/plain",
+                )
+            },
+        )
+
+    assert response.status_code == 400
+
+    finished = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "document.upload.finished"
+    )
+    assert finished.document_id is None
+    assert finished.status == "rejected"
+    assert "not-a-pdf.txt" not in caplog.text
+    assert "private-content" not in caplog.text
