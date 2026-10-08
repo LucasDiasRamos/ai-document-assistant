@@ -1,5 +1,6 @@
-from fastapi import HTTPException, status
+from fastapi import status
 
+from app.api.errors import APIErrorCode, APIException
 from app.services.embedding_service import (
     EmbeddingConfigurationError,
     EmbeddingProvider,
@@ -16,8 +17,9 @@ def get_embedding_provider_dependency() -> EmbeddingProvider:
     try:
         return build_embedding_provider()
     except EmbeddingConfigurationError as exc:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            code=APIErrorCode.PROVIDER_UNAVAILABLE,
             detail="Embedding provider is not configured",
         ) from exc
 
@@ -26,7 +28,8 @@ def get_generation_provider_dependency() -> GenerationProvider:
     try:
         return build_generation_provider()
     except GenerationConfigurationError as exc:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            code=APIErrorCode.PROVIDER_UNAVAILABLE,
             detail="Generation provider is not configured",
         ) from exc
