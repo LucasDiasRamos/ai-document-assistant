@@ -10,6 +10,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.main import app
 from app.models.document_chunk import EMBEDDING_DIMENSION
+from app.services.ingestion_service import DocumentIngestionError
 from app.services.storage_service import StorageService, get_storage_service
 
 
@@ -210,3 +211,37 @@ def test_upload_filename_longer_than_database_limit_returns_400(
         "detail": "Filename must be at most 255 characters",
         "code": "validation_error",
     }
+
+
+def test_upload_processing_failure_uses_safe_error_contract(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fail_processing(db, document, embedding_provider) -> None:
+        document.error_message = "Document processing failed"
+        raise DocumentIngestionError(
+            "private implementation detail /tmp/secret.pdf"
+        )
+
+    monkeypatch.setattr(
+        "app.api.routes.documents.process_document",
+        fail_processing,
+    )
+
+    response = client.post(
+        "/api/documents",
+        files={
+            "file": (
+                "manual.pdf",
+                PDF_BYTES,
+                "application/pdf",
+            )
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": "Document processing failed",
+        "code": "processing_failed",
+    }
+    assert "/tmp/secret.pdf" not in response.text
