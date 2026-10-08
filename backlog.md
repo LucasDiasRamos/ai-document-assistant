@@ -1513,7 +1513,7 @@ Core upload, document management, and chat flows are keyboard accessible and scr
 
 ## WEB-14 — Frontend automated tests
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** stable Web features
 

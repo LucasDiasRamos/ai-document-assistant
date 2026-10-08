@@ -49,6 +49,7 @@ Implemented:
 - Deduplicated source chips with document/page traceability and long-filename handling
 - Distinct chat UX for insufficient document context, no ready documents, offline failures, server failures, and temporary AI-service outages
 - Keyboard-first and screen-reader-friendly interaction for chat, async states, upload, and document deletion
+- Consolidated frontend regression suite with a deterministic `npm test` command and primary workflow coverage
 - Predictable frontend error mapping for HTTP, validation, network, timeout, cancellation, and invalid responses
 - Frontend API-base configuration validation
 - Storage, upload, extraction, chunking, embedding, ingestion, document-read, deletion, RAG prompt, generation, retrieval, chat, and insufficient-context tests
@@ -56,7 +57,8 @@ Implemented:
 
 Planned next:
 
-- Frontend regression-suite consolidation
+- End-to-end browser happy-path coverage
+- Web CI and production build validation
 - RAG evaluation fixtures and threshold calibration
 
 ## Target architecture
@@ -222,3 +224,15 @@ The initial version intentionally avoids a heavy RAG framework. The goal is to m
 ## License
 
 A license has not been selected yet.
+
+
+### Frontend tests
+
+Run the full frontend regression suite once with:
+
+```bash
+cd frontend
+npm test
+```
+
+Use `npm run test:watch` for local watch mode.

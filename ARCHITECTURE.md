@@ -270,3 +270,8 @@ M0 Bootstrap
 ### Frontend accessibility behavior
 
 Core interactions are designed for keyboard and assistive-technology use. The chat composer submits with Enter and preserves Shift+Enter for multiline input. While generation is active the textbox remains focusable and becomes read-only instead of being removed from the tab order; the conversation exposes a polite live log and busy state. Document deletion moves focus into the inline confirmation, returns focus to the delete trigger on cancel, and moves focus to the upload action after successful removal. Primary controls use visible focus indicators, semantic labels, live status/error roles, reduced-motion behavior, and forced-colors fallbacks.
+
+
+### Frontend regression strategy
+
+Frontend behavior is protected at two layers. Feature-focused Vitest + React Testing Library tests cover document list/upload/delete behavior, chat requests, citations, error states, keyboard interaction, and accessibility contracts. A higher-level App workflow test exercises the primary portfolio journey through the shared `ApiClient` boundary: empty knowledge base, PDF upload, Ready state, grounded question, source citation, document deletion, and chat readiness after removal. `npm test` runs the suite once and exits; watch mode remains available separately for development.
