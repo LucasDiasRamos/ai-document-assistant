@@ -52,6 +52,7 @@ Implemented:
 - Consolidated frontend regression suite with a deterministic `npm test` command and primary workflow coverage
 - Predictable frontend error mapping for HTTP, validation, network, timeout, cancellation, and invalid responses
 - Structured backend observability for uploads, ingestion, retrieval, provider latency, and application errors
+- Repeatable RAG retrieval evaluation with synthetic PDFs, expected source pages, and unsupported-question thresholds
 - Frontend API-base configuration validation
 - Storage, upload, extraction, chunking, embedding, ingestion, document-read, deletion, RAG prompt, generation, retrieval, chat, and insufficient-context tests
 - Initial project documentation
@@ -237,3 +238,15 @@ npm test
 ```
 
 Use `npm run test:watch` for local watch mode.
+
+
+### RAG evaluation
+
+Run the retrieval-quality fixtures without a paid generation provider:
+
+```bash
+cd backend
+pytest tests/test_rag_evaluation.py -q
+```
+
+The always-on portion extracts and chunks the committed synthetic PDFs and checks expected page retrieval with deterministic test embeddings. When the configured PostgreSQL/pgvector test database is available, the same corpus also runs through the production ingestion and pgvector retrieval path.
