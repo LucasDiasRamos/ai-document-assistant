@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+import logging
 
 import pytest
 from sqlalchemy.dialects import postgresql
@@ -176,3 +177,45 @@ def test_wrong_query_embedding_dimension_is_rejected_before_sql() -> None:
         )
 
     assert db.statement is None
+
+
+
+def test_retrieval_logs_duration_and_count_without_question(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    rows = [
+        SimpleNamespace(
+            chunk_id=11,
+            document_id=3,
+            document="manual.pdf",
+            page_number=7,
+            chunk_index=2,
+            content="Sensitive source content",
+            distance=0.08,
+        )
+    ]
+    db = FakeSession(rows)
+    provider = FakeEmbeddingProvider()
+    question = "confidential user question"
+
+    with caplog.at_level(
+        logging.INFO,
+        logger="app.services.retrieval_service",
+    ):
+        retrieve_relevant_chunks(
+            db,
+            question,
+            provider,
+            top_k=1,
+        )
+
+    record = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "retrieval.completed"
+    )
+
+    assert record.result_count == 1
+    assert record.duration_ms >= 0
+    assert question not in caplog.text
+    assert "Sensitive source content" not in caplog.text
