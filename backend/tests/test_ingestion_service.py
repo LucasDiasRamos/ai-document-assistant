@@ -347,7 +347,7 @@ def test_ingestion_failure_logs_safe_technical_context(
     assert record.document_id == document.id
     assert record.status == "failed"
     assert "EmbeddingProviderError" in record.error_type
-    assert record.getMessage() == "document.processing.failed"
+    assert '"event":"document.processing.failed"' in record.getMessage()
     assert "provider-secret-detail" not in caplog.text
     assert "/tmp/stored.pdf" not in caplog.text
 
