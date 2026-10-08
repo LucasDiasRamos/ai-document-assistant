@@ -1,5 +1,16 @@
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from app.api.errors import (
+    APIException,
+    api_exception_handler,
+    database_exception_handler,
+    http_exception_handler,
+    validation_exception_handler,
+)
 
 from app.api.router import api_router
 from app.core.config import settings
@@ -13,6 +24,10 @@ app = FastAPI(
 )
 
 app.add_middleware(UploadRequestSizeLimitMiddleware)
+app.add_exception_handler(APIException, api_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(OperationalError, database_exception_handler)
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 app.include_router(api_router)
 
 
