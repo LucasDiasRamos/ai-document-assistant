@@ -5,7 +5,7 @@ from enum import StrEnum
 from fastapi import HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 
@@ -72,7 +72,7 @@ async def validation_exception_handler(
 
 async def database_exception_handler(
     request: Request,
-    exc: OperationalError,
+    exc: SQLAlchemyError,
 ) -> JSONResponse:
     return api_error_response(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -94,4 +94,15 @@ async def http_exception_handler(
         status_code=exc.status_code,
         code=APIErrorCode.HTTP_ERROR,
         detail=detail,
+    )
+
+
+async def internal_exception_handler(
+    request: Request,
+    exc: Exception,
+) -> JSONResponse:
+    return api_error_response(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        code=APIErrorCode.INTERNAL_ERROR,
+        detail="Internal server error",
     )
