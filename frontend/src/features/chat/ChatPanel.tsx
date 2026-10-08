@@ -243,7 +243,7 @@ export function ChatPanel({
   const documentsUnknown =
     searchableDocumentsState === "unknown";
   const composerDisabled =
-    isSending || documentsUnavailable || documentsUnknown;
+    documentsUnavailable || documentsUnknown;
 
   const composerPlaceholder = documentsUnavailable
     ? "Upload a ready PDF before asking a question…"
@@ -279,6 +279,7 @@ export function ChatPanel({
             : "conversation conversation-populated"
         }
         aria-label="Conversation"
+        aria-busy={isSending}
       >
         {showNoDocumentsState ? (
           <div
@@ -300,7 +301,13 @@ export function ChatPanel({
         ) : showEmptyState ? (
           <ChatEmptyState onSuggestionSelect={setDraft} />
         ) : (
-          <div className="message-list">
+          <div
+            className="message-list"
+            role="log"
+            aria-label="Conversation messages"
+            aria-live="polite"
+            aria-relevant="additions text"
+          >
             {messages.map((message) => (
               <ChatMessage key={message.id} message={message} />
             ))}
@@ -371,6 +378,7 @@ export function ChatPanel({
         onChange={setDraft}
         onSubmit={handleSubmit}
         disabled={composerDisabled}
+        busy={isSending}
         placeholder={composerPlaceholder}
       />
     </main>

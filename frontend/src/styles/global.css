@@ -57,7 +57,7 @@ button:focus-visible,
 textarea:focus-visible,
 a:focus-visible,
 main:focus-visible {
-  outline: 3px solid rgb(79 70 229 / 0.35);
+  outline: 3px solid #6d63f5;
 }
 
 svg {
@@ -1232,5 +1232,21 @@ svg {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+}
+
+
+@media (forced-colors: active) {
+  button:focus-visible,
+  textarea:focus-visible,
+  a:focus-visible,
+  main:focus-visible {
+    outline: 2px solid Highlight;
+  }
+
+  .composer:focus-within,
+  .document-item,
+  .chat-message .message-body {
+    border-color: CanvasText;
   }
 }

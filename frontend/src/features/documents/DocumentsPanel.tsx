@@ -124,6 +124,9 @@ export function DocumentsPanel({
   } | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadButtonRef = useRef<HTMLButtonElement>(null);
+  const deleteConfirmButtonRef = useRef<HTMLButtonElement>(null);
+  const deleteTriggerRef = useRef<HTMLButtonElement | null>(null);
   const uploadControllerRef = useRef<AbortController | null>(null);
   const deleteControllerRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
@@ -294,6 +297,15 @@ export function DocumentsPanel({
     };
   }, []);
 
+  useEffect(() => {
+    if (
+      deleteCandidateId !== null &&
+      deletingDocumentId === null
+    ) {
+      deleteConfirmButtonRef.current?.focus();
+    }
+  }, [deleteCandidateId, deletingDocumentId]);
+
   const handleFileSelection = async (
     event: ChangeEvent<HTMLInputElement>,
   ) => {
@@ -349,11 +361,15 @@ export function DocumentsPanel({
     }
   };
 
-  const handleDeleteRequest = (documentId: number) => {
+  const handleDeleteRequest = (
+    documentId: number,
+    trigger: HTMLButtonElement,
+  ) => {
     if (deletingDocumentId !== null) {
       return;
     }
 
+    deleteTriggerRef.current = trigger;
     setDeleteCandidateId(documentId);
     setDeleteError(null);
   };
@@ -365,6 +381,10 @@ export function DocumentsPanel({
 
     setDeleteCandidateId(null);
     setDeleteError(null);
+
+    window.setTimeout(() => {
+      deleteTriggerRef.current?.focus();
+    }, 0);
   };
 
   const handleDeleteConfirm = async (document: DocumentSummary) => {
@@ -393,6 +413,11 @@ export function DocumentsPanel({
       );
       setTotal((currentTotal) => Math.max(0, currentTotal - 1));
       setDeleteCandidateId(null);
+      deleteTriggerRef.current = null;
+
+      window.setTimeout(() => {
+        uploadButtonRef.current?.focus();
+      }, 0);
     } catch (error: unknown) {
       if (
         error instanceof ApiClientError &&
@@ -522,7 +547,12 @@ export function DocumentsPanel({
                     type="button"
                     aria-label={`Delete ${document.original_filename}`}
                     disabled={deletingDocumentId !== null}
-                    onClick={() => handleDeleteRequest(document.id)}
+                    onClick={(event) =>
+                      handleDeleteRequest(
+                        document.id,
+                        event.currentTarget,
+                      )
+                    }
                   >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M4.75 7.25h14.5M9 7.25V5.5h6v1.75M7.5 7.25l.75 11h7.5l.75-11M10 10.5v4.75M14 10.5v4.75" />
@@ -555,6 +585,11 @@ export function DocumentsPanel({
                           Cancel
                         </button>
                         <button
+                          ref={
+                            isConfirmingDelete
+                              ? deleteConfirmButtonRef
+                              : undefined
+                          }
                           className="button delete-confirm-button"
                           type="button"
                           disabled={isDeleting}
@@ -588,6 +623,7 @@ export function DocumentsPanel({
         />
 
         <button
+          ref={uploadButtonRef}
           className="button button-primary upload-button"
           type="button"
           disabled={isUploading}

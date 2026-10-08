@@ -1482,7 +1482,7 @@ The chat experience can preserve useful context without changing the core docume
 
 ## WEB-13 — Accessibility and keyboard behavior
 
-**Status:** Todo
+**Status:** Done
 
 ### What
 
