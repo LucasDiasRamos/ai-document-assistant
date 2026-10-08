@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+import logging
+from time import perf_counter
 from typing import Any, Protocol
 
 from openai import OpenAI
 
 from app.core.config import settings
+from app.core.observability import elapsed_ms, log_event
 from app.models.document_chunk import EMBEDDING_DIMENSION
 
 
@@ -14,6 +17,7 @@ OPENAI_MODEL_MAX_DIMENSIONS = {
     "text-embedding-3-large": 3072,
 }
 OPENAI_EMBEDDING_BATCH_SIZE = 100
+logger = logging.getLogger(__name__)
 
 
 class EmbeddingError(RuntimeError):
@@ -97,6 +101,8 @@ class OpenAIEmbeddingProvider:
         self,
         batch: Sequence[str],
     ) -> list[list[float]]:
+        started_at = perf_counter()
+
         try:
             response = self._client.embeddings.create(
                 model=self.model,
@@ -104,9 +110,28 @@ class OpenAIEmbeddingProvider:
                 dimensions=self.dimension,
             )
         except Exception as exc:
+            log_event(
+                logger,
+                logging.ERROR,
+                "provider.request.failed",
+                provider="openai",
+                operation="embedding",
+                duration_ms=elapsed_ms(started_at),
+                error_type=type(exc).__name__,
+            )
             raise EmbeddingProviderError(
                 "Embedding provider request failed"
             ) from exc
+
+        log_event(
+            logger,
+            logging.INFO,
+            "provider.request.completed",
+            provider="openai",
+            operation="embedding",
+            duration_ms=elapsed_ms(started_at),
+            result_count=len(response.data),
+        )
 
         data = sorted(response.data, key=lambda item: item.index)
 
