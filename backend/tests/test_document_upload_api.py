@@ -115,7 +115,10 @@ def test_upload_non_pdf_returns_bad_request(client: TestClient) -> None:
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "Only PDF files are supported"
+    assert response.json() == {
+        "detail": "Only PDF files are supported",
+        "code": "unsupported_file",
+    }
 
 
 def test_upload_oversized_pdf_returns_413(
@@ -137,6 +140,7 @@ def test_upload_oversized_pdf_returns_413(
 
     assert response.status_code == 413
     assert "exceeds" in response.json()["detail"]
+    assert response.json()["code"] == "upload_too_large"
 
 
 def test_upload_invalid_pdf_signature_returns_bad_request(
@@ -154,7 +158,10 @@ def test_upload_invalid_pdf_signature_returns_bad_request(
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "Uploaded file is not a valid PDF"
+    assert response.json() == {
+        "detail": "Uploaded file is not a valid PDF",
+        "code": "unsupported_file",
+    }
 
 
 def test_upload_request_limit_rejects_before_document_service(
@@ -175,9 +182,10 @@ def test_upload_request_limit_rejects_before_document_service(
     )
 
     assert response.status_code == 413
-    assert response.json()["detail"] == (
-        "Upload request exceeds the allowed size"
-    )
+    assert response.json() == {
+        "detail": "Upload request exceeds the allowed size",
+        "code": "upload_too_large",
+    }
 
 
 def test_upload_filename_longer_than_database_limit_returns_400(
@@ -198,6 +206,7 @@ def test_upload_filename_longer_than_database_limit_returns_400(
 
     assert len(filename) == 256
     assert response.status_code == 400
-    assert response.json()["detail"] == (
-        "Filename must be at most 255 characters"
-    )
+    assert response.json() == {
+        "detail": "Filename must be at most 255 characters",
+        "code": "validation_error",
+    }
