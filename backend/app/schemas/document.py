@@ -39,4 +39,4 @@ class DocumentListResponse(BaseModel):
 
 class APIError(BaseModel):
     detail: str
-    code: str | None = None
+    code: str
