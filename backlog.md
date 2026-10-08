@@ -886,7 +886,7 @@ A failed ingestion or chat request can be diagnosed from logs without exposing s
 
 ## API-22 — Automated RAG evaluation fixtures
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** API-17, API-18
 
