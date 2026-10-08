@@ -160,7 +160,7 @@ def test_known_questions_retrieve_expected_page_in_memory(
 @pytest.mark.parametrize(
     "case",
     EVALUATION_CASES["unsupported_questions"],
-    ids=["unsupported-ocean", "unsupported-football"],
+    ids=lambda case: case["question"][:32],
 )
 def test_unsupported_questions_fail_support_threshold_in_memory(
     corpus_chunks: list[tuple[str, TextChunk]],
