@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import (
     get_embedding_provider_dependency,
     get_generation_provider_dependency,
 )
+from app.api.errors import APIErrorCode, APIException
 from app.core.database import get_db
 from app.schemas.chat import ChatRequest, ChatResponse, ChatSource
 from app.schemas.document import APIError
@@ -41,13 +42,15 @@ def chat(
             generation_provider,
         )
     except (EmbeddingError, RetrievalError) as exc:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            code=APIErrorCode.PROVIDER_UNAVAILABLE,
             detail="Document retrieval is temporarily unavailable",
         ) from exc
     except GenerationError as exc:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            code=APIErrorCode.PROVIDER_UNAVAILABLE,
             detail="Answer generation is temporarily unavailable",
         ) from exc
 
