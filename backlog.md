@@ -853,7 +853,7 @@ The frontend can map API failures to useful user messages.
 
 ## API-21 — Logging and observability
 
-**Status:** Todo
+**Status:** Done
 
 ### What
 
