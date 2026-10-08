@@ -1,12 +1,18 @@
 from __future__ import annotations
 
 from enum import StrEnum
+import logging
 
 from fastapi import HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import OperationalError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from app.core.observability import log_event
+
+
+logger = logging.getLogger(__name__)
 
 
 class APIErrorCode(StrEnum):
@@ -52,6 +58,14 @@ async def api_exception_handler(
     request: Request,
     exc: APIException,
 ) -> JSONResponse:
+    log_event(
+        logger,
+        logging.WARNING if exc.status_code < 500 else logging.ERROR,
+        "application.error",
+        error_code=str(exc.code),
+        http_status=exc.status_code,
+        error_type=type(exc).__name__,
+    )
     return api_error_response(
         status_code=exc.status_code,
         code=exc.code,
@@ -63,6 +77,14 @@ async def validation_exception_handler(
     request: Request,
     exc: RequestValidationError,
 ) -> JSONResponse:
+    log_event(
+        logger,
+        logging.WARNING,
+        "application.error",
+        error_code=str(APIErrorCode.VALIDATION_ERROR),
+        http_status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        error_type=type(exc).__name__,
+    )
     return api_error_response(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         code=APIErrorCode.VALIDATION_ERROR,
@@ -74,6 +96,14 @@ async def database_exception_handler(
     request: Request,
     exc: OperationalError,
 ) -> JSONResponse:
+    log_event(
+        logger,
+        logging.ERROR,
+        "application.error",
+        error_code=str(APIErrorCode.DATABASE_UNAVAILABLE),
+        http_status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        error_type=type(exc).__name__,
+    )
     return api_error_response(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         code=APIErrorCode.DATABASE_UNAVAILABLE,
@@ -89,6 +119,14 @@ async def http_exception_handler(
         exc.detail
         if isinstance(exc.detail, str)
         else "Request could not be completed"
+    )
+    log_event(
+        logger,
+        logging.WARNING if exc.status_code < 500 else logging.ERROR,
+        "application.error",
+        error_code=str(APIErrorCode.HTTP_ERROR),
+        http_status=exc.status_code,
+        error_type=type(exc).__name__,
     )
     return api_error_response(
         status_code=exc.status_code,
