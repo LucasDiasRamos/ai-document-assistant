@@ -1,17 +1,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
+from time import perf_counter
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.observability import elapsed_ms, log_event
 from app.models.document import Document, DocumentStatus
 from app.models.document_chunk import DocumentChunk, EMBEDDING_DIMENSION
 from app.services.embedding_service import EmbeddingProvider
 
 
 MAX_RETRIEVAL_TOP_K = 20
+logger = logging.getLogger(__name__)
 
 
 class RetrievalError(RuntimeError):
@@ -48,6 +52,7 @@ def retrieve_relevant_chunks(
     *,
     top_k: int | None = None,
 ) -> list[RetrievedChunk]:
+    started_at = perf_counter()
     normalized_question = question.strip()
     if not normalized_question:
         raise RetrievalInputError("Question must not be empty")
@@ -87,6 +92,14 @@ def retrieve_relevant_chunks(
     )
 
     rows = db.execute(statement).all()
+
+    log_event(
+        logger,
+        logging.INFO,
+        "retrieval.completed",
+        result_count=len(rows),
+        duration_ms=elapsed_ms(started_at),
+    )
 
     return [
         RetrievedChunk(
