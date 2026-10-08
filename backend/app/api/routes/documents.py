@@ -222,8 +222,9 @@ def remove_document(
     document = get_document_by_id(db, document_id)
 
     if document is None:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
+            code=APIErrorCode.DOCUMENT_NOT_FOUND,
             detail="Document not found",
         )
 
