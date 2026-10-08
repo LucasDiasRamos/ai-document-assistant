@@ -26,6 +26,11 @@ class UnavailableDatabaseSession:
         )
 
 
+class UnexpectedFailureSession:
+    def scalars(self, statement):
+        raise RuntimeError("secret-internal-marker")
+
+
 def test_request_validation_uses_stable_error_schema() -> None:
     with TestClient(app) as client:
         response = client.post("/api/chat", json={"question": ""})
@@ -117,3 +122,38 @@ def test_application_error_log_uses_safe_structured_fields(
     assert record.error_type == "OperationalError"
     assert "sensitive-database-marker" not in caplog.text
     assert "secret_table" not in caplog.text
+
+
+def test_internal_failure_log_is_structured_without_secret_details(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    app.dependency_overrides[get_db] = lambda: UnexpectedFailureSession()
+
+    try:
+        with caplog.at_level(
+            logging.ERROR,
+            logger="app.api.errors",
+        ):
+            with TestClient(
+                app,
+                raise_server_exceptions=False,
+            ) as client:
+                response = client.get("/api/documents")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "detail": "Internal server error",
+        "code": "internal_error",
+    }
+
+    record = next(
+        record
+        for record in caplog.records
+        if getattr(record, "error_code", None) == "internal_error"
+    )
+    assert record.http_status == 500
+    assert record.error_type == "RuntimeError"
+    assert '"event":"application.error"' in record.getMessage()
+    assert "secret-internal-marker" not in caplog.text
