@@ -138,15 +138,24 @@ def upload_document(
                 else "Embedding provider unavailable"
             ),
         ) from exc
+    finally:
+        log_event(
+            logger,
+            logging.INFO,
+            "document.upload.finished",
+            operation="upload",
+            document_id=(
+                document.id
+                if document is not None
+                else None
+            ),
+            status=(
+                document.status.value
+                if document is not None
+                else "rejected"
+            ),
+        )
 
-    log_event(
-        logger,
-        logging.INFO,
-        "document.upload.completed",
-        operation="upload",
-        document_id=document.id,
-        status=document.status.value,
-    )
     return DocumentUploadResponse.model_validate(document)
 
 
