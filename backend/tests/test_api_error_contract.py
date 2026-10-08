@@ -24,6 +24,13 @@ class UnavailableDatabaseSession:
         )
 
 
+class UnexpectedFailureSession:
+    def scalars(self, statement):
+        raise RuntimeError(
+            "secret internal detail /private/storage/api-key=hidden"
+        )
+
+
 def test_request_validation_uses_stable_error_schema() -> None:
     with TestClient(app) as client:
         response = client.post("/api/chat", json={"question": ""})
@@ -81,3 +88,22 @@ def test_unknown_http_route_uses_safe_fallback_contract() -> None:
         "detail": "Not Found",
         "code": "http_error",
     }
+
+
+def test_unexpected_failure_uses_safe_internal_contract() -> None:
+    app.dependency_overrides[get_db] = lambda: UnexpectedFailureSession()
+
+    try:
+        with TestClient(app, raise_server_exceptions=False) as client:
+            response = client.get("/api/documents")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "detail": "Internal server error",
+        "code": "internal_error",
+    }
+    assert "private/storage" not in response.text
+    assert "api-key" not in response.text
+    assert "secret internal detail" not in response.text
