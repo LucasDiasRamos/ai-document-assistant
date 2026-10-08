@@ -817,7 +817,7 @@ Users can return to a conversation and see previous questions and answers.
 
 ## API-20 — Unified API errors and validation
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** document and chat endpoints
 
