@@ -5,6 +5,7 @@ import logging
 
 from sqlalchemy.orm import Session
 
+from app.core.observability import log_event
 from app.models.document import Document, DocumentStatus
 from app.models.document_chunk import DocumentChunk, EMBEDDING_DIMENSION
 from app.services.chunk_service import TextChunk, chunk_pages
@@ -47,6 +48,14 @@ def process_document(
     page_extractor: PageExtractor = extract_pdf_pages,
     page_chunker: PageChunker = chunk_pages,
 ) -> Document:
+    log_event(
+        logger,
+        logging.INFO,
+        "document.processing.started",
+        document_id=document.id,
+        status=document.status.value,
+    )
+
     try:
         _mark_processing(db, document)
         pages = page_extractor(document.file_path)
@@ -82,16 +91,23 @@ def process_document(
         db.add(document)
         db.commit()
         db.refresh(document)
+        log_event(
+            logger,
+            logging.INFO,
+            "document.processing.succeeded",
+            document_id=document.id,
+            status=document.status.value,
+            chunk_count=len(persisted_chunks),
+        )
     except Exception as exc:
         error_types = _error_type_chain(exc)
-        logger.error(
-            "Document ingestion failed document_id=%s error_types=%s",
-            document.id,
-            error_types,
-            extra={
-                "document_id": document.id,
-                "error_types": error_types,
-            },
+        log_event(
+            logger,
+            logging.ERROR,
+            "document.processing.failed",
+            document_id=document.id,
+            status=DocumentStatus.FAILED.value,
+            error_type=error_types,
         )
         db.rollback()
         _mark_failed(db, document, exc)
