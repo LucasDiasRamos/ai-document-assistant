@@ -275,3 +275,8 @@ Core interactions are designed for keyboard and assistive-technology use. The ch
 ### Frontend regression strategy
 
 Frontend behavior is protected at two layers. Feature-focused Vitest + React Testing Library tests cover document list/upload/delete behavior, chat requests, citations, error states, keyboard interaction, and accessibility contracts. A higher-level App workflow test exercises the primary portfolio journey through the shared `ApiClient` boundary: empty knowledge base, PDF upload, Ready state, grounded question, source citation, document deletion, and chat readiness after removal. `npm test` runs the suite once and exits; watch mode remains available separately for development.
+
+
+### Unified API error contract
+
+Expected API failures use a stable JSON envelope with a safe human-readable `detail` and machine-readable `code`. Current codes distinguish validation, unsupported files, upload limits, missing documents, processing failures, provider outages, database outages, internal failures, and generic HTTP fallback errors. FastAPI validation and SQLAlchemy operational failures are normalized by application-level exception handlers, while the upload-size middleware returns the same envelope before multipart parsing. Error responses must not include stack traces, credentials, local storage paths, SQL statements, or provider internals.
