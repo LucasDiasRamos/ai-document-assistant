@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 from time import perf_counter
 from typing import Any
@@ -38,11 +39,17 @@ def log_event(
         and isinstance(value, (str, int, float, bool, type(None)))
     }
 
+    payload = {
+        "event": event,
+        **safe_fields,
+    }
+
     logger.log(
         level,
-        event,
-        extra={
-            "event": event,
-            **safe_fields,
-        },
+        json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+        ),
+        extra=payload,
     )
