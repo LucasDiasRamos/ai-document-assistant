@@ -1,115 +1,95 @@
+<div align="center">
+
 # AI Document Assistant
 
-AI-powered document question-answering application built as a portfolio-grade RAG project.
+**Turn PDFs into searchable knowledge with grounded, page-cited answers.**
 
-Users will be able to upload documents, ask natural-language questions about their contents, and receive grounded answers with document and page citations.
+A full-stack Retrieval-Augmented Generation (RAG) application built with **FastAPI, React, PostgreSQL and pgvector**.
 
-## Current status
+[![Backend CI](https://github.com/LucasDiasRamos/ai-document-assistant/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/LucasDiasRamos/ai-document-assistant/actions/workflows/backend-ci.yml)
+[![Python](https://img.shields.io/badge/Python-FastAPI-009688?logo=python&logoColor=white)](backend/)
+[![React](https://img.shields.io/badge/React-TypeScript-149ECA?logo=react&logoColor=white)](frontend/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgvector-4169E1?logo=postgresql&logoColor=white)](docker-compose.yml)
 
-Project bootstrap completed.
+[Features](#features) · [Architecture](#architecture-at-a-glance) · [Run locally](#quick-start) · [Tests](#backend-pull-request-ci) · [Technical docs](#documentation)
 
-Implemented:
+</div>
 
-- FastAPI application
-- API health endpoint
-- PostgreSQL connectivity health endpoint
-- SQLAlchemy base configuration
-- Environment-based configuration
-- PostgreSQL 16 + pgvector through Docker Compose
-- Alembic migration chain with pgvector initialization
-- `Document` and `DocumentChunk` persistence models
-- Public document schemas
-- Persistence/schema tests
-- Safe local PDF storage with UUID filenames and path containment
-- PDF upload endpoint with type, signature, and size validation
-- Filesystem/database rollback on failed persistence
-- Page-aware PDF text extraction with PyMuPDF
-- Controlled handling for corrupt, non-PDF, blank-page, and encrypted files
-- Page-aware overlapping chunking with deterministic indexes
-- Provider-neutral embedding abstraction with OpenAI as the first provider
-- Schema-aligned 1536-dimension embedding validation
-- Synchronous document ingestion orchestration from upload through persisted chunks
-- Safe processing/failed/processed status transitions
-- Document list and detail endpoints with public-safe metadata
-- Document deletion with database cascade and local-file cleanup
-- Grounded RAG prompt/context builder with source metadata separated from generated text
-- Provider-neutral LLM generation abstraction using the OpenAI Responses API
-- pgvector cosine-similarity retrieval with processed-document filtering
-- Chat/RAG endpoint returning grounded answers with document/page sources
-- Configurable retrieval-quality threshold that suppresses weak-context generation
-- React + Vite + TypeScript frontend bootstrap with smoke tests
-- Responsive document + chat application shell for desktop and mobile
-- Centralized typed frontend API client for documents, uploads, deletion, and chat
-- Live document sidebar with loading, empty, failure, retry, status, and timestamp states
-- PDF upload interaction with client-side file filtering, pending state, API errors, and post-upload refresh
-- Bounded automatic status refresh for uploaded/processing documents until ready or failed
-- Confirmed document deletion with pending/error states and local list updates after success
-- Reusable chat presentation for user/assistant messages, citations, composer, and empty state
-- Live grounded chat flow through the RAG API with pending, cancellation, sequential-question, and failure states
-- Deduplicated source chips with document/page traceability and long-filename handling
-- Distinct chat UX for insufficient document context, no ready documents, offline failures, server failures, and temporary AI-service outages
-- Keyboard-first and screen-reader-friendly interaction for chat, async states, upload, and document deletion
-- Consolidated frontend regression suite with a deterministic `npm test` command and primary workflow coverage
-- Predictable frontend error mapping for HTTP, validation, network, timeout, cancellation, and invalid responses
-- Structured backend observability for uploads, ingestion, retrieval, provider latency, and application errors
-- Repeatable RAG retrieval evaluation with synthetic PDFs, expected source pages, and unsupported-question thresholds
-- Frontend API-base configuration validation
-- Storage, upload, extraction, chunking, embedding, ingestion, document-read, deletion, RAG prompt, generation, retrieval, chat, and insufficient-context tests
-- Initial project documentation
+## Why this project?
 
-Planned next:
+Information in manuals, technical reports, and policies is often buried across long PDF files. This application combines semantic search with language-model generation so users can ask questions and inspect **which documents and pages support each answer**. When retrieval evidence is weak, the application can return an insufficient-context response instead of presenting an unsupported answer.
 
-- End-to-end browser happy-path coverage
-- Web CI and production build validation
-- Production hardening, end-to-end tests, and deployment
+## Features
 
-## Target architecture
+- **PDF lifecycle:** upload with server-side validation, page-aware text extraction, chunking, document listing, status display, and confirmed deletion.
+- **Source-aware RAG:** OpenAI embeddings, pgvector similarity retrieval, configurable relevance threshold, and answers with document/page references.
+- **Usable web experience:** responsive document/chat workspace, upload progress and errors, loading/retry states, citation chips, and accessible controls.
+- **Engineering practices:** Alembic migrations, environment-driven configuration, structured observability, backend tests, frontend tests, and reproducible RAG evaluation fixtures.
+- **Local-first development:** Docker Compose for the API and PostgreSQL; Vite frontend with a development API proxy.
 
-```text
-PDF upload
-    |
-    v
-FastAPI
-    |
-    v
-Text extraction -> chunking -> embeddings
-                           |
-                           v
-                 PostgreSQL + pgvector
-                           |
-User question -> embedding -> vector search
-                           |
-                           v
-                     relevant chunks
-                           |
-                           v
-                          LLM
-                           |
-                           v
-                 answer + citations
+The app's current functionality and remaining work are tracked in [Implementation status](docs/implementation-status.md). These are repository features; no public hosted demo is currently advertised.
+
+## Demo and screenshots
+
+A hosted demo and verified application screenshots have **not been published yet**. To see the actual interface, run the project locally using the instructions below. Interface screenshots or a short GIF can be added here once captured from a running instance.
+
+## Architecture at a glance
+
+```mermaid
+flowchart LR
+    A["PDF upload"] --> B["FastAPI API"]
+    B --> C["PyMuPDF extraction"]
+    C --> D["Page-aware chunks"]
+    D --> E["Embeddings"]
+    E --> F[("PostgreSQL + pgvector")]
+    Q["User question"] --> G["Question embedding"]
+    G --> H["Vector similarity search"]
+    F --> H
+    H --> I["Relevant passages + page metadata"]
+    I --> J["LLM generation"]
+    J --> K["Answer + document/page citations"]
 ```
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the full architecture and [PRD.md](PRD.md) for product requirements.
+The backend keeps ingestion, retrieval, prompt construction and response generation as explicit components. See [ARCHITECTURE.md](ARCHITECTURE.md) for component boundaries, data models, security notes, and design trade-offs.
 
 ## Tech stack
 
-- Python
-- FastAPI
-- SQLAlchemy
-- PostgreSQL 16
-- pgvector
-- PyMuPDF
-- OpenAI embeddings
-- OpenAI Responses API
-- React 19
-- Vite
-- TypeScript
-- Vitest + React Testing Library
-- Docker / Docker Compose
-- Alembic
-- Pytest
+| Layer | Technologies |
+| --- | --- |
+| Frontend | React 19, TypeScript, Vite, Vitest, React Testing Library |
+| API | Python, FastAPI, SQLAlchemy, Pydantic |
+| Retrieval | pgvector, semantic search, OpenAI embeddings |
+| Document processing | PyMuPDF, page-aware text chunks |
+| Persistence | PostgreSQL 16, Alembic, local PDF storage |
+| LLM | OpenAI Responses API through provider-neutral abstractions |
+| Tooling | Docker Compose, Pytest, CI, structured logs |
 
-The frontend is bootstrapped under `frontend/` and will be built out incrementally through the Web backlog.
+## Quick start
+
+**Prerequisites:** Docker with Compose v2, Node.js 20.19+ (or 22.12+), npm, and an API key for AI-powered document ingestion/chat.
+
+```bash
+git clone https://github.com/LucasDiasRamos/ai-document-assistant.git
+cd ai-document-assistant
+docker compose up --build --wait -d
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
+```
+
+Open the URL displayed by Vite (usually http://localhost:5173). The API is available at http://localhost:8000 and its Swagger documentation at http://localhost:8000/docs. Configure `OPENAI_API_KEY` before using the embedding and chat workflows; health endpoints do not require a paid API call. For Windows PowerShell, copy the frontend environment file with `Copy-Item .env.example .env`.
+
+**Note:** Compose is intended for localhost development with disposable default credentials, **not for public deployment**. See the complete setup and security notes below.
+
+## Documentation
+
+- [Product requirements](PRD.md) — goals, scope, and user stories
+- [System architecture](ARCHITECTURE.md) — data flow, components, and design decisions
+- [Implementation status](docs/implementation-status.md) — implemented features and planned work
+- [Development backlog](backlog.md) — task-level roadmap
+
+---
 
 ## Run the backend and database with Docker Compose
 
