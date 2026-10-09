@@ -168,9 +168,10 @@ def test_chat_generation_failure_returns_safe_503() -> None:
         )
 
     assert response.status_code == 503
-    assert response.json()["detail"] == (
-        "Answer generation is temporarily unavailable"
-    )
+    assert response.json() == {
+        "detail": "Answer generation is temporarily unavailable",
+        "code": "provider_unavailable",
+    }
     assert "secret provider detail" not in response.text
 
 

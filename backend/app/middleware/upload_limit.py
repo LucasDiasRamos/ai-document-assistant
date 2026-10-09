@@ -3,6 +3,7 @@ from __future__ import annotations
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from app.api.errors import APIErrorCode
 from app.core.config import settings
 
 
@@ -96,6 +97,9 @@ class UploadRequestSizeLimitMiddleware:
     ) -> None:
         response = JSONResponse(
             status_code=413,
-            content={"detail": "Upload request exceeds the allowed size"},
+            content={
+                "detail": "Upload request exceeds the allowed size",
+                "code": str(APIErrorCode.UPLOAD_TOO_LARGE),
+            },
         )
         await response(scope, receive, send)
