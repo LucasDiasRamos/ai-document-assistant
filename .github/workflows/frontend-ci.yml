@@ -45,20 +45,6 @@ jobs:
   e2e:
     name: Browser E2E with real PostgreSQL
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_DB: ai_document_assistant_e2e
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: e2e-only-password
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d ai_document_assistant_e2e"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
     env:
       DATABASE_URL: postgresql+psycopg://postgres:e2e-only-password@127.0.0.1:5432/ai_document_assistant_e2e
       LLM_MODEL: e2e-fake-model
@@ -68,6 +54,14 @@ jobs:
       APP_ENVIRONMENT: development
     steps:
       - uses: actions/checkout@v4
+      - name: Prepare local PostgreSQL 16 and pgvector
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-16-pgvector
+          sudo systemctl start postgresql
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -c "ALTER USER postgres WITH PASSWORD 'e2e-only-password';"
+          sudo -u postgres createdb ai_document_assistant_e2e
+          PGPASSWORD=e2e-only-password psql -h 127.0.0.1 -U postgres -d ai_document_assistant_e2e -v ON_ERROR_STOP=1 -c 'CREATE EXTENSION IF NOT EXISTS vector;'
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
