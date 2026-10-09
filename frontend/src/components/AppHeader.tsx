@@ -6,14 +6,14 @@ export function AppHeader() {
           AI
         </span>
         <div>
-          <p className="brand-kicker">Document intelligence</p>
+          <p className="brand-kicker">DOCUMENT KNOWLEDGE WORKSPACE</p>
           <p className="brand-name">AI Document Assistant</p>
         </div>
       </div>
 
       <span className="status-badge">
         <span className="status-dot" aria-hidden="true" />
-        Local workspace
+        Evidence-backed answers
       </span>
     </header>
   );

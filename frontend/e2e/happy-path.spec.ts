@@ -15,7 +15,7 @@ const fixturePath = resolve(
 test("PDF upload, pgvector retrieval, grounded citation, and deletion", async ({
   page,
   request,
-}) => {
+}, testInfo) => {
   // This is NOT a mocked HTTP interface: Vite proxies /api to a live FastAPI
   // process backed by a disposable migrated PostgreSQL/pgvector database.
   // Only the embedding and generation providers are deterministic.
@@ -49,6 +49,19 @@ test("PDF upload, pgvector retrieval, grounded citation, and deletion", async ({
   await expect(
     page.getByRole("listitem", { name: `${filename}, page 1` }),
   ).toBeVisible();
+
+  // Real browser evidence for portfolio reviews; generated from CI fixtures.
+  // A published demo screenshot can be promoted only after manual review.
+  await page.screenshot({
+    path: testInfo.outputPath("portfolio-workspace.png"),
+    fullPage: true,
+    animations: "disabled",
+  });
+
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > window.innerWidth,
+  );
+  expect(overflow, "The workspace must fit the viewport").toBe(false);
 
   await page.getByRole("button", { name: `Delete ${filename}` }).click();
   await expect(

@@ -96,6 +96,14 @@ jobs:
       - name: Run desktop and mobile browser tests
         working-directory: frontend
         run: npm run test:e2e
+      - name: Upload real-browser portfolio captures
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: portfolio-ui-screenshots
+          path: frontend/test-results/**/portfolio-workspace.png
+          retention-days: 14
+          if-no-files-found: error
       - name: Show API errors on failure
         if: failure()
         run: tail -n 150 /tmp/ai-document-assistant-e2e-api.log || true
