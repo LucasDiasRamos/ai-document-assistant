@@ -1548,7 +1548,7 @@ This task itself is complete when the above feature tests run reliably in one co
 
 ## WEB-15 — End-to-end happy-path test
 
-**Status:** Todo
+**Status:** Done (real browser + PostgreSQL; deterministic AI providers)
 
 **Depends on:** completed API + Web core flows
 
