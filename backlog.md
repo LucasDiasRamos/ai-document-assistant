@@ -979,7 +979,7 @@ Breaking backend changes are detected before merge.
 
 ## API-25 — API security hardening for public demo
 
-**Status:** Todo before public deployment
+**Status:** Done (security baseline; tenant isolation remains outside MVP)
 
 ### What
 
