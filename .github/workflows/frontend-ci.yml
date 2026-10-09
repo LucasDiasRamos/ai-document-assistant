@@ -4,12 +4,14 @@ on:
   pull_request:
     paths:
       - "frontend/**"
+      - "backend/**"
       - ".github/workflows/frontend-ci.yml"
   push:
     branches:
       - main
     paths:
       - "frontend/**"
+      - "backend/**"
       - ".github/workflows/frontend-ci.yml"
 
 permissions:
@@ -39,3 +41,69 @@ jobs:
         run: npm test
       - name: Verify production build
         run: npm run build
+
+  e2e:
+    name: Browser E2E with real PostgreSQL
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:e2e-only-password@127.0.0.1:5432/ai_document_assistant_e2e
+      LLM_MODEL: e2e-fake-model
+      OPENAI_API_KEY: ""
+      STORAGE_ROOT: /tmp/ai-document-assistant-e2e-pdfs
+      ENABLE_DETERMINISTIC_E2E: "1"
+      APP_ENVIRONMENT: development
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare local PostgreSQL 16 and pgvector
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-16-pgvector
+          sudo systemctl start postgresql
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -c "ALTER USER postgres WITH PASSWORD 'e2e-only-password';"
+          sudo -u postgres createdb ai_document_assistant_e2e
+          PGPASSWORD=e2e-only-password psql -h 127.0.0.1 -U postgres -d ai_document_assistant_e2e -v ON_ERROR_STOP=1 -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install API dependencies
+        run: python -m pip install -r backend/requirements.txt
+      - name: Apply real PostgreSQL/pgvector migrations
+        working-directory: backend
+        run: alembic upgrade head
+      - name: Start FastAPI with deterministic AI providers
+        working-directory: frontend/e2e
+        run: |
+          nohup env PYTHONPATH=../../backend python -m uvicorn backend_app:app --host 127.0.0.1 --port 8000 > /tmp/ai-document-assistant-e2e-api.log 2>&1 < /dev/null &
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8000/health/database; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/ai-document-assistant-e2e-api.log
+          exit 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install browser test dependencies
+        working-directory: frontend
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Run desktop and mobile browser tests
+        working-directory: frontend
+        run: npm run test:e2e
+      - name: Show API errors on failure
+        if: failure()
+        run: tail -n 150 /tmp/ai-document-assistant-e2e-api.log || true
+      - name: Upload Playwright evidence on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-e2e-failures
+          path: frontend/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
