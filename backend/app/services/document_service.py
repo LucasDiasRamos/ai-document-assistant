@@ -101,6 +101,14 @@ def _validate_upload(upload: UploadFile) -> str:
             f"Filename must be at most {DOCUMENT_FILENAME_MAX_LENGTH} characters"
         )
 
+    # Never persist path traversal or control characters from a client filename.
+    if (
+        "/" in original_filename
+        or chr(92) in original_filename
+        or any(ord(char) < 32 or ord(char) == 127 for char in original_filename)
+    ):
+        raise DocumentUploadValidationError("Filename contains unsafe characters")
+
     if Path(original_filename).suffix.lower() != ".pdf":
         raise UnsupportedDocumentTypeError("Only PDF files are supported")
 
