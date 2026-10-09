@@ -51,10 +51,12 @@ Implemented:
 - Repeatable RAG retrieval evaluation with synthetic PDFs, expected source pages, and unsupported-question thresholds
 - Frontend API-base configuration validation
 - Storage, upload, extraction, chunking, embedding, ingestion, document-read, deletion, RAG prompt, generation, retrieval, chat, and insufficient-context tests
+- Production API security baseline with exact-origin CORS, basic throttling, and safe upload filenames
+- Automated backend and frontend GitHub Actions checks, with passing production frontend build
+- Portfolio-facing README with quick start and honest demo status
 - Initial project documentation
 
 Planned next:
 
 - End-to-end browser happy-path coverage
-- Web CI and production build validation
-- Production hardening, end-to-end tests, and deployment
+- Production deployment hardening, persistent public storage, and hosted demo deployment

@@ -264,7 +264,24 @@ bash scripts/smoke-compose.sh
 
 Docker Compose tests require a running Docker daemon and Docker Compose v2.
 
-## Frontend tests
+## Product goal
+
+The initial version intentionally avoids a heavy RAG framework. The goal is to make ingestion, chunking, embeddings, retrieval, prompt construction, and citation handling explicit and easy to understand.
+
+## License
+
+A license has not been selected yet.
+
+
+### Frontend tests
+
+The frontend has its own GitHub Actions job in
+`.github/workflows/frontend-ci.yml`. On frontend pull requests and pushes to
+`main`, it installs Node 22 dependencies, runs the Vitest component/workflow
+regression suite, and checks the TypeScript + Vite production build. Both
+checks must succeed before merging the frontend. Until a committed
+`frontend/package-lock.json` is introduced, CI uses `npm install`; locking
+dependencies is recommended for reproducible builds.
 
 Run the full frontend regression suite once with:
 
@@ -276,7 +293,7 @@ npm test
 Use `npm run test:watch` for local watch mode.
 
 
-## RAG evaluation
+### RAG evaluation
 
 Run the retrieval-quality fixtures without a paid generation provider:
 
@@ -287,11 +304,30 @@ pytest tests/test_rag_evaluation.py -q
 
 The always-on portion extracts and chunks the committed synthetic PDFs and checks expected page retrieval with deterministic test embeddings. When the configured PostgreSQL/pgvector test database is available, the same corpus also runs through the production ingestion and pgvector retrieval path.
 
+## Security baseline for a public demo (API-25)
 
-## Product goal
+For a public environment set `APP_ENVIRONMENT=production` and
+`CORS_ALLOWED_ORIGINS` to a JSON list of **exact HTTPS frontend origins**,
+such as `["https://frontend.example.com"]`. Startup rejects missing,
+wildcard or plain-HTTP production origins. The production application disables
+Swagger, ReDoc, OpenAPI and debug traces.
 
-The initial version intentionally avoids a heavy RAG framework. The goal is to make ingestion, chunking, embeddings, retrieval, prompt construction, and citation handling explicit and easy to understand.
+The production API applies a lightweight in-process sliding-window limit to
+anonymous `POST /api/chat` and `POST /api/documents` requests. Exceeded
+requests return HTTP 429, the stable `rate_limited` code and
+`Retry-After`. Quotas can be tuned with
+`CHAT_REQUESTS_PER_MINUTE`, `UPLOAD_REQUESTS_PER_MINUTE` and
+`RATE_LIMIT_WINDOW_SECONDS`. Existing PDF-size/type/signature constraints,
+provider request timeouts, and safe API error envelopes are retained.
+Upload filenames containing path separators or control characters are rejected.
 
-## License
-
-A license has not been selected yet.
+**Important:** The rate limiter uses only the ASGI peer address, not
+untrusted forwarded IP headers, and tracks limits per worker. Behind reverse
+proxies or across multiple workers, implement a trusted ingress-level
+distributed rate limiter and provider billing quotas. CORS is not access
+control or authentication. This portfolio MVP has **shared anonymous
+documents** and no tenant isolation; do not expose private PDFs or customer
+data, and protect/seed a public demo with non-sensitive, disposable fixtures.
+Configure credentials in hosting platform secrets, never in source or bundled
+frontend code. For a production multi-tenant system, add authentication,
+authorization, data isolation, and retention/deletion controls first.
