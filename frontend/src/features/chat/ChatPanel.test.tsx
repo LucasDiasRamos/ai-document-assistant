@@ -319,6 +319,56 @@ describe("ChatPanel", () => {
     ).toBeInTheDocument();
   });
 
+
+  it("disables suggestions until document readiness is known", () => {
+    render(
+      <ChatPanel
+        client={createClient(vi.fn())}
+        searchableDocumentsState="unknown"
+      />,
+    );
+
+    const suggestions = screen.getAllByRole("button", {
+      name: /Summarize the key requirements|What actions does the policy describe|Which page discusses the warranty/,
+    });
+    expect(suggestions).toHaveLength(3);
+    suggestions.forEach((suggestion) => expect(suggestion).toBeDisabled());
+  });
+
+  it("pre-fills the composer from a suggested question", () => {
+    render(<ChatPanel client={createClient(vi.fn())} />);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Which page discusses the warranty?",
+      }),
+    );
+
+    expect(
+      screen.getByRole("textbox", {
+        name: "Ask a question about your documents",
+      }),
+    ).toHaveValue("Which page discusses the warranty?");
+  });
+
+  it("explains HTTP 429 without encouraging immediate retries", async () => {
+    const sendChat = vi.fn().mockRejectedValue(
+      new ApiClientError("Too many requests", {
+        kind: "http",
+        status: 429,
+        code: "rate_limited",
+      }),
+    );
+    render(<ChatPanel client={createClient(sendChat)} />);
+    submitQuestion("What are the requirements?");
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Usage limit reached");
+    expect(alert).toHaveTextContent("Wait a moment before asking again.");
+    expect(screen.queryByRole("button", { name: "Try again" }))
+      .not.toBeInTheDocument();
+  });
+
   it("supports multiple sequential questions", async () => {
     const sendChat = vi
       .fn()

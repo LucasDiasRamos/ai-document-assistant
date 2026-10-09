@@ -75,6 +75,10 @@ describe("DocumentsPanel", () => {
     );
 
     expect(
+      document.querySelectorAll(".document-skeleton"),
+    ).toHaveLength(3);
+
+    expect(
       await screen.findByRole("heading", { name: "No documents yet" }),
     ).toBeInTheDocument();
 
