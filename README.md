@@ -35,7 +35,7 @@ A hosted demo and verified application screenshots have **not been published yet
 
 ## Architecture at a glance
 
-\`\`\`mermaid
+```mermaid
 flowchart LR
     A["PDF upload"] --> B["FastAPI API"]
     B --> C["PyMuPDF extraction"]
@@ -48,7 +48,7 @@ flowchart LR
     H --> I["Relevant passages + page metadata"]
     I --> J["LLM generation"]
     J --> K["Answer + document/page citations"]
-\`\`\`
+```
 
 The backend keeps ingestion, retrieval, prompt construction and response generation as explicit components. See [ARCHITECTURE.md](ARCHITECTURE.md) for component boundaries, data models, security notes, and design trade-offs.
 
@@ -68,7 +68,7 @@ The backend keeps ingestion, retrieval, prompt construction and response generat
 
 **Prerequisites:** Docker with Compose v2, Node.js 20.19+ (or 22.12+), npm, and an API key for AI-powered document ingestion/chat.
 
-\`\`\`bash
+```bash
 git clone https://github.com/LucasDiasRamos/ai-document-assistant.git
 cd ai-document-assistant
 docker compose up --build --wait -d
@@ -76,9 +76,9 @@ cd frontend
 cp .env.example .env
 npm install
 npm run dev
-\`\`\`
+```
 
-Open the URL displayed by Vite (usually http://localhost:5173). The API is available at http://localhost:8000 and its Swagger documentation at http://localhost:8000/docs. Configure \`OPENAI_API_KEY\` before using the embedding and chat workflows; health endpoints do not require a paid API call. For Windows PowerShell, copy the frontend environment file with \`Copy-Item .env.example .env\`.
+Open the URL displayed by Vite (usually http://localhost:5173). The API is available at http://localhost:8000 and its Swagger documentation at http://localhost:8000/docs. Configure `OPENAI_API_KEY` before using the embedding and chat workflows; health endpoints do not require a paid API call. For Windows PowerShell, copy the frontend environment file with `Copy-Item .env.example .env`.
 
 **Note:** Compose is intended for localhost development with disposable default credentials, **not for public deployment**. See the complete setup and security notes below.
 
