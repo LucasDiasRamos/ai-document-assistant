@@ -949,7 +949,7 @@ A developer can run the backend and database together with Docker Compose.
 
 ## API-24 — CI for backend
 
-**Status:** Todo
+**Status:** Done
 
 ### What
 

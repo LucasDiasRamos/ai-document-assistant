@@ -7,6 +7,10 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.exc import OperationalError
 
+from app.api.dependencies import (
+    get_embedding_provider_dependency,
+    get_generation_provider_dependency,
+)
 from app.core.database import get_db
 from app.main import app
 from app.models.document import Document, DocumentStatus
@@ -32,8 +36,17 @@ class UnexpectedFailureSession:
 
 
 def test_request_validation_uses_stable_error_schema() -> None:
-    with TestClient(app) as client:
-        response = client.post("/api/chat", json={"question": ""})
+    # Dependency resolution precedes body validation in FastAPI. Keep this
+    # test independent of external API credentials and provider setup.
+    app.dependency_overrides[get_embedding_provider_dependency] = lambda: object()
+    app.dependency_overrides[get_generation_provider_dependency] = lambda: object()
+    app.dependency_overrides[get_db] = lambda: object()
+
+    try:
+        with TestClient(app) as client:
+            response = client.post("/api/chat", json={"question": ""})
+    finally:
+        app.dependency_overrides.clear()
 
     assert response.status_code == 422
     assert response.json() == {

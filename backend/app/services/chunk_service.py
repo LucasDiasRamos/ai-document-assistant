@@ -112,7 +112,9 @@ def _build_token_spans(text: str, *, chunk_size: int) -> list[_TextSpan]:
 
 
 def _needs_character_fallback(token: str, *, chunk_size: int) -> bool:
-    if len(token) > chunk_size:
+    # Preserve ordinary words as lexical units even when a window is tiny.
+    # Split only unusually long uninterrupted words into characters.
+    if len(token) > max(chunk_size, 8):
         return True
 
     return any(_is_cjk_character(character) for character in token)

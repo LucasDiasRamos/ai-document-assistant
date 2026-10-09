@@ -1,3 +1,4 @@
+from importlib import import_module
 from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
@@ -128,7 +129,8 @@ def test_save_retries_uuid_collision_without_deleting_existing_file(
         ]
     )
     monkeypatch.setattr(
-        "app.services.storage_service.uuid4",
+        import_module("app.services.storage_service"),
+        "uuid4",
         lambda: next(generated),
     )
 
@@ -151,7 +153,8 @@ def test_save_raises_after_repeated_uuid_collisions_without_data_loss(
     existing.write_bytes(b"existing-data")
 
     monkeypatch.setattr(
-        "app.services.storage_service.uuid4",
+        import_module("app.services.storage_service"),
+        "uuid4",
         lambda: SimpleNamespace(hex="collision"),
     )
 
