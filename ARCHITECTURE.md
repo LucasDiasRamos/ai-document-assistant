@@ -285,3 +285,8 @@ Expected API failures use a stable JSON envelope with a safe human-readable `det
 ### Backend observability
 
 Backend logging uses stable event names plus a strict whitelist of structured fields. Current events cover upload start/finish, document-processing start/success/failure, retrieval duration/result count, provider request duration/failure, and normalized application errors. Logged context is intentionally limited to technical metadata such as document IDs, status values, counts, durations, provider/operation names, HTTP status, error code, and exception type. Full document text, user questions, generated answers, embeddings, provider credentials, database connection details, and local storage paths are not logged.
+
+
+### RAG evaluation baseline
+
+Retrieval quality has a deterministic synthetic baseline independent from LLM wording. Two committed three-page PDFs contain isolated facts for remote work, training reimbursement, incident reporting, warranty, battery guidance, and maintenance. `cases.json` maps known questions to expected document/page evidence and includes intentionally unsupported questions. The default evaluation extracts and chunks the real PDF fixtures, uses deterministic schema-sized test embeddings, checks that expected pages appear in top-k, and verifies unsupported questions remain below the configured support threshold. When PostgreSQL/pgvector is available, an integration case ingests the same PDFs through `process_document` and validates the production vector-retrieval path. No generation provider or paid AI request is required.

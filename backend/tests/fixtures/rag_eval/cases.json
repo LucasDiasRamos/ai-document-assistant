@@ -1,0 +1,70 @@
+{
+  "documents": [
+    {
+      "file": "employee_handbook.pdf",
+      "original_filename": "employee_handbook.pdf"
+    },
+    {
+      "file": "product_manual.pdf",
+      "original_filename": "product_manual.pdf"
+    }
+  ],
+  "known_questions": [
+    {
+      "question": "How many remote work days are allowed per week?",
+      "expected_document": "employee_handbook.pdf",
+      "expected_pages": [
+        1
+      ],
+      "top_k": 3
+    },
+    {
+      "question": "What is the annual training reimbursement limit?",
+      "expected_document": "employee_handbook.pdf",
+      "expected_pages": [
+        2
+      ],
+      "top_k": 3
+    },
+    {
+      "question": "When must an incident be reported?",
+      "expected_document": "employee_handbook.pdf",
+      "expected_pages": [
+        3
+      ],
+      "top_k": 3
+    },
+    {
+      "question": "How long is the product warranty period?",
+      "expected_document": "product_manual.pdf",
+      "expected_pages": [
+        1
+      ],
+      "top_k": 3
+    },
+    {
+      "question": "How long does a battery charge take?",
+      "expected_document": "product_manual.pdf",
+      "expected_pages": [
+        2
+      ],
+      "top_k": 3
+    },
+    {
+      "question": "How often is preventive maintenance required?",
+      "expected_document": "product_manual.pdf",
+      "expected_pages": [
+        3
+      ],
+      "top_k": 3
+    }
+  ],
+  "unsupported_questions": [
+    {
+      "question": "What is the deepest ocean trench?"
+    },
+    {
+      "question": "Who won the football championship?"
+    }
+  ]
+}
