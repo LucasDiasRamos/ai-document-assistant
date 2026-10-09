@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 
 const filename = "employee_handbook.pdf";
@@ -7,8 +7,9 @@ const knownQuestion = "How many remote work days are allowed per week?";
 const deterministicAnswer =
   "The employee handbook includes the remote-work policy.";
 
-const fixturePath = fileURLToPath(
-  new URL("../../backend/tests/fixtures/rag_eval/employee_handbook.pdf", import.meta.url),
+const fixturePath = resolve(
+  process.cwd(),
+  "../backend/tests/fixtures/rag_eval/employee_handbook.pdf",
 );
 
 test("PDF upload, pgvector retrieval, grounded citation, and deletion", async ({
