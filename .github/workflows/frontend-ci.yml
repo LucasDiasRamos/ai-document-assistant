@@ -73,9 +73,9 @@ jobs:
         working-directory: backend
         run: alembic upgrade head
       - name: Start FastAPI with deterministic AI providers
-        working-directory: backend
+        working-directory: frontend/e2e
         run: |
-          nohup python -m uvicorn e2e_app:app --host 127.0.0.1 --port 8000 > /tmp/ai-document-assistant-e2e-api.log 2>&1 < /dev/null &
+          nohup env PYTHONPATH=../../backend python -m uvicorn backend_app:app --host 127.0.0.1 --port 8000 > /tmp/ai-document-assistant-e2e-api.log 2>&1 < /dev/null &
           for attempt in $(seq 1 30); do
             if curl --fail --silent http://127.0.0.1:8000/health/database; then
               exit 0

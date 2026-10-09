@@ -16,11 +16,11 @@ multipart upload, PDF parsing, chunk persistence, vector retrieval and deletion.
 2. Create the backend virtual environment, install
    `backend/requirements.txt`, and configure `DATABASE_URL`, `LLM_MODEL`
    and `STORAGE_ROOT` for a **throwaway database and directory**.
-3. From `backend/`, run `alembic upgrade head`, then start the
-   test-only service:
+3. From `backend/`, run `alembic upgrade head`. Then from
+   `frontend/e2e/`, start the test-only service:
 
    ```bash
-   ENABLE_DETERMINISTIC_E2E=1 uvicorn e2e_app:app --host 127.0.0.1 --port 8000
+   ENABLE_DETERMINISTIC_E2E=1 PYTHONPATH=../../backend python -m uvicorn backend_app:app --host 127.0.0.1 --port 8000
    ```
 
 4. From `frontend/`, run:
