@@ -25,6 +25,7 @@ class APIErrorCode(StrEnum):
     DATABASE_UNAVAILABLE = "database_unavailable"
     INTERNAL_ERROR = "internal_error"
     HTTP_ERROR = "http_error"
+    RATE_LIMITED = "rate_limited"
 
 
 class APIException(HTTPException):
