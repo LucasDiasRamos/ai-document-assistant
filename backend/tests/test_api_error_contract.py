@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+import logging
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.exc import OperationalError
 
@@ -20,15 +22,13 @@ class UnavailableDatabaseSession:
         raise OperationalError(
             "SELECT secret_table",
             {},
-            RuntimeError("postgres://user:password@private-host/db"),
+            RuntimeError("sensitive-database-marker"),
         )
 
 
 class UnexpectedFailureSession:
     def scalars(self, statement):
-        raise RuntimeError(
-            "secret internal detail /private/storage/api-key=hidden"
-        )
+        raise RuntimeError("secret-internal-marker")
 
 
 def test_request_validation_uses_stable_error_schema() -> None:
@@ -74,8 +74,7 @@ def test_database_failure_is_safe_and_does_not_leak_connection_details() -> None
         "detail": "Database is temporarily unavailable",
         "code": "database_unavailable",
     }
-    assert "password" not in response.text
-    assert "private-host" not in response.text
+    assert "sensitive-database-marker" not in response.text
     assert "secret_table" not in response.text
 
 
@@ -90,12 +89,56 @@ def test_unknown_http_route_uses_safe_fallback_contract() -> None:
     }
 
 
-def test_unexpected_failure_uses_safe_internal_contract() -> None:
+
+def test_application_error_log_uses_safe_structured_fields(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    app.dependency_overrides[get_db] = (
+        lambda: UnavailableDatabaseSession()
+    )
+
+    try:
+        with caplog.at_level(
+            logging.ERROR,
+            logger="app.api.errors",
+        ):
+            with TestClient(
+                app,
+                raise_server_exceptions=False,
+            ) as client:
+                response = client.get("/api/documents")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 503
+
+    record = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "application.error"
+    )
+    assert record.error_code == "database_unavailable"
+    assert record.http_status == 503
+    assert record.error_type == "OperationalError"
+    assert "sensitive-database-marker" not in caplog.text
+    assert "secret_table" not in caplog.text
+
+
+def test_internal_failure_log_is_structured_without_secret_details(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     app.dependency_overrides[get_db] = lambda: UnexpectedFailureSession()
 
     try:
-        with TestClient(app, raise_server_exceptions=False) as client:
-            response = client.get("/api/documents")
+        with caplog.at_level(
+            logging.ERROR,
+            logger="app.api.errors",
+        ):
+            with TestClient(
+                app,
+                raise_server_exceptions=False,
+            ) as client:
+                response = client.get("/api/documents")
     finally:
         app.dependency_overrides.clear()
 
@@ -104,6 +147,13 @@ def test_unexpected_failure_uses_safe_internal_contract() -> None:
         "detail": "Internal server error",
         "code": "internal_error",
     }
-    assert "private/storage" not in response.text
-    assert "api-key" not in response.text
-    assert "secret internal detail" not in response.text
+
+    record = next(
+        record
+        for record in caplog.records
+        if getattr(record, "error_code", None) == "internal_error"
+    )
+    assert record.http_status == 500
+    assert record.error_type == "RuntimeError"
+    assert '"event":"application.error"' in record.getMessage()
+    assert "secret-internal-marker" not in caplog.text

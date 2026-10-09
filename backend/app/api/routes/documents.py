@@ -1,4 +1,5 @@
 from typing import Annotated
+import logging
 
 from fastapi import (
     APIRouter,
@@ -14,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.api.dependencies import get_embedding_provider_dependency
 from app.api.errors import APIErrorCode, APIException
 from app.core.database import get_db
+from app.core.observability import log_event
 from app.schemas.document import (
     APIError,
     DocumentDetail,
@@ -47,6 +49,7 @@ from app.services.pdf_service import PdfExtractionError
 from app.services.storage_service import StorageService, get_storage_service
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
+logger = logging.getLogger(__name__)
 
 
 @router.post(
@@ -70,6 +73,12 @@ def upload_document(
     ),
 ) -> DocumentUploadResponse:
     document = None
+    log_event(
+        logger,
+        logging.INFO,
+        "document.upload.started",
+        operation="upload",
+    )
 
     try:
         document = create_uploaded_document(
@@ -129,6 +138,23 @@ def upload_document(
                 else "Embedding provider unavailable"
             ),
         ) from exc
+    finally:
+        log_event(
+            logger,
+            logging.INFO,
+            "document.upload.finished",
+            operation="upload",
+            document_id=(
+                document.id
+                if document is not None
+                else None
+            ),
+            status=(
+                document.status.value
+                if document is not None
+                else "rejected"
+            ),
+        )
 
     return DocumentUploadResponse.model_validate(document)
 

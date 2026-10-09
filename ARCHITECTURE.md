@@ -280,3 +280,8 @@ Frontend behavior is protected at two layers. Feature-focused Vitest + React Tes
 ### Unified API error contract
 
 Expected API failures use a stable JSON envelope with a safe human-readable `detail` and machine-readable `code`. Current codes distinguish validation, unsupported files, upload limits, missing documents, processing failures, provider outages, database outages, internal failures, and generic HTTP fallback errors. FastAPI validation and SQLAlchemy operational failures are normalized by application-level exception handlers, while the upload-size middleware returns the same envelope before multipart parsing. Error responses must not include stack traces, credentials, local storage paths, SQL statements, or provider internals.
+
+
+### Backend observability
+
+Backend logging uses stable event names plus a strict whitelist of structured fields. Current events cover upload start/finish, document-processing start/success/failure, retrieval duration/result count, provider request duration/failure, and normalized application errors. Logged context is intentionally limited to technical metadata such as document IDs, status values, counts, durations, provider/operation names, HTTP status, error code, and exception type. Full document text, user questions, generated answers, embeddings, provider credentials, database connection details, and local storage paths are not logged.

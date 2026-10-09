@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+import logging
 
 import pytest
 from pydantic import SecretStr
@@ -298,3 +299,70 @@ def test_large_batch_is_partitioned_and_preserves_global_order() -> None:
     assert [item[0] for item in result] == [
         float(index) for index in range(total)
     ]
+
+
+
+def test_embedding_provider_logs_safe_duration_without_input(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    response = SimpleNamespace(
+        data=[
+            SimpleNamespace(
+                index=0,
+                embedding=vector(0.25),
+            )
+        ]
+    )
+    provider, _ = make_provider(response)
+    sensitive_input = "confidential document content"
+
+    with caplog.at_level(
+        logging.INFO,
+        logger="app.services.embedding_service",
+    ):
+        provider.embed_text(sensitive_input)
+
+    record = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None)
+        == "provider.request.completed"
+    )
+
+    assert record.provider == "openai"
+    assert record.operation == "embedding"
+    assert record.result_count == 1
+    assert record.duration_ms >= 0
+    assert sensitive_input not in caplog.text
+
+
+def test_embedding_provider_failure_logs_error_type_not_secret(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    api = FakeEmbeddingsAPI(
+        error=RuntimeError("secret-provider-message")
+    )
+    provider = OpenAIEmbeddingProvider(
+        model="text-embedding-3-small",
+        api_key="super-secret-key",
+        timeout_seconds=1,
+        client=FakeClient(api),
+    )
+
+    with caplog.at_level(
+        logging.ERROR,
+        logger="app.services.embedding_service",
+    ):
+        with pytest.raises(EmbeddingProviderError):
+            provider.embed_text("private input")
+
+    record = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "provider.request.failed"
+    )
+
+    assert record.error_type == "RuntimeError"
+    assert "secret-provider-message" not in caplog.text
+    assert "super-secret-key" not in caplog.text
+    assert "private input" not in caplog.text

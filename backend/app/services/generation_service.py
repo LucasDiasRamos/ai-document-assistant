@@ -2,15 +2,19 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+import logging
+from time import perf_counter
 from typing import Any, Literal, Protocol
 
 from openai import APITimeoutError, OpenAI
 
 from app.core.config import settings
+from app.core.observability import elapsed_ms, log_event
 
 
 GenerationRole = Literal["system", "developer", "user", "assistant"]
 _ALLOWED_ROLES = {"system", "developer", "user", "assistant"}
+logger = logging.getLogger(__name__)
 
 
 class GenerationError(RuntimeError):
@@ -72,19 +76,48 @@ class OpenAIGenerationProvider:
     ) -> str:
         prepared_messages = _prepare_messages(messages)
 
+        started_at = perf_counter()
+
         try:
             response = self._client.responses.create(
                 model=self.model,
                 input=prepared_messages,
             )
         except APITimeoutError as exc:
+            log_event(
+                logger,
+                logging.ERROR,
+                "provider.request.failed",
+                provider="openai",
+                operation="generation",
+                duration_ms=elapsed_ms(started_at),
+                error_type=type(exc).__name__,
+            )
             raise GenerationTimeoutError(
                 "Generation provider request timed out"
             ) from exc
         except Exception as exc:
+            log_event(
+                logger,
+                logging.ERROR,
+                "provider.request.failed",
+                provider="openai",
+                operation="generation",
+                duration_ms=elapsed_ms(started_at),
+                error_type=type(exc).__name__,
+            )
             raise GenerationProviderError(
                 "Generation provider request failed"
             ) from exc
+
+        log_event(
+            logger,
+            logging.INFO,
+            "provider.request.completed",
+            provider="openai",
+            operation="generation",
+            duration_ms=elapsed_ms(started_at),
+        )
 
         output_text = getattr(response, "output_text", None)
         if not isinstance(output_text, str) or not output_text.strip():

@@ -51,6 +51,7 @@ Implemented:
 - Keyboard-first and screen-reader-friendly interaction for chat, async states, upload, and document deletion
 - Consolidated frontend regression suite with a deterministic `npm test` command and primary workflow coverage
 - Predictable frontend error mapping for HTTP, validation, network, timeout, cancellation, and invalid responses
+- Structured backend observability for uploads, ingestion, retrieval, provider latency, and application errors
 - Frontend API-base configuration validation
 - Storage, upload, extraction, chunking, embedding, ingestion, document-read, deletion, RAG prompt, generation, retrieval, chat, and insufficient-context tests
 - Initial project documentation

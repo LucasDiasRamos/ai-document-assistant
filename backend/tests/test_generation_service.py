@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+import logging
 
 import httpx
 import pytest
@@ -227,3 +228,71 @@ def test_llm_model_must_be_explicitly_configured(
             ),
             _env_file=None,
         )
+
+
+
+def test_generation_provider_logs_safe_duration_without_prompt(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    provider, _ = make_provider(
+        response=SimpleNamespace(output_text="Grounded answer.")
+    )
+    sensitive_prompt = "confidential retrieved context"
+
+    with caplog.at_level(
+        logging.INFO,
+        logger="app.services.generation_service",
+    ):
+        provider.generate(
+            [
+                GenerationMessage(
+                    role="user",
+                    content=sensitive_prompt,
+                )
+            ]
+        )
+
+    record = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None)
+        == "provider.request.completed"
+    )
+
+    assert record.provider == "openai"
+    assert record.operation == "generation"
+    assert record.duration_ms >= 0
+    assert sensitive_prompt not in caplog.text
+    assert "Grounded answer." not in caplog.text
+
+
+def test_generation_provider_failure_logs_error_type_not_secret(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    provider, _ = make_provider(
+        error=RuntimeError("secret-provider-message")
+    )
+
+    with caplog.at_level(
+        logging.ERROR,
+        logger="app.services.generation_service",
+    ):
+        with pytest.raises(GenerationProviderError):
+            provider.generate(
+                [
+                    GenerationMessage(
+                        role="user",
+                        content="private question",
+                    )
+                ]
+            )
+
+    record = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "provider.request.failed"
+    )
+
+    assert record.error_type == "RuntimeError"
+    assert "secret-provider-message" not in caplog.text
+    assert "private question" not in caplog.text
