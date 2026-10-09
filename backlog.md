@@ -918,7 +918,7 @@ Changes to chunking, embeddings, or retrieval can be compared against a baseline
 
 ## API-23 — Run backend in Docker Compose
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** stable API startup
 

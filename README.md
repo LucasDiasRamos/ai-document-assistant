@@ -61,7 +61,7 @@ Planned next:
 
 - End-to-end browser happy-path coverage
 - Web CI and production build validation
-- RAG evaluation fixtures and threshold calibration
+- Production hardening, backend CI, and deployment
 
 ## Target architecture
 
@@ -111,6 +111,39 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full architecture and [PRD.md](PR
 
 The frontend is bootstrapped under `frontend/` and will be built out incrementally through the Web backlog.
 
+## Run the backend and database with Docker Compose
+
+From the repository root, with Docker Compose v2 installed:
+
+```bash
+# Optional: put POSTGRES_PASSWORD, OPENAI_API_KEY and LLM_MODEL in a root .env.
+docker compose up --build --wait -d
+curl -f http://localhost:8000/health
+curl -f http://localhost:8000/health/database
+```
+
+The API image includes its Alembic migrations. Compose waits for PostgreSQL
+to become healthy, then the API applies migrations before starting Uvicorn.
+`postgres_data` preserves the database and `document_storage` preserves PDF
+uploads across regular restarts and `docker compose down`. Never run
+`docker compose down -v` unless you intend to delete those volumes.
+
+Both published ports bind only to localhost. This is a **local development**
+configuration with disposable default database credentials, not a public
+deployment manifest. For real data, set a strong `POSTGRES_PASSWORD` in the
+root `.env` (URL-encode special characters for the database connection string).
+No paid AI API call is required to boot or check health; document ingestion and
+chat still require a valid `OPENAI_API_KEY` and model.
+
+```bash
+bash scripts/smoke-compose.sh  # optional health/restart check on Linux/macOS
+docker compose down            # stops services, retains volumes
+```
+
+To run the backend natively instead, follow the steps below and start
+**only PostgreSQL** with `docker compose up -d postgres` so the container API
+does not occupy port 8000.
+
 ## Local setup
 
 ### 1. Clone and enter the project
@@ -123,7 +156,7 @@ cd ai-document-assistant
 ### 2. Start PostgreSQL
 
 ```bash
-docker compose up -d
+docker compose up -d postgres
 ```
 
 ### 3. Create the backend environment

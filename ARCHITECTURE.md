@@ -290,3 +290,13 @@ Backend logging uses stable event names plus a strict whitelist of structured fi
 ### RAG evaluation baseline
 
 Retrieval quality has a deterministic synthetic baseline independent from LLM wording. Two committed three-page PDFs contain isolated facts for remote work, training reimbursement, incident reporting, warranty, battery guidance, and maintenance. `cases.json` maps known questions to expected document/page evidence and includes intentionally unsupported questions. The default evaluation extracts and chunks the real PDF fixtures, uses deterministic schema-sized test embeddings, checks that expected pages appear in top-k, and verifies unsupported questions remain below the configured support threshold. When PostgreSQL/pgvector is available, an integration case ingests the same PDFs through `process_document` and validates the production vector-retrieval path. No generation provider or paid AI request is required.
+
+## Local container orchestration
+
+The development Compose stack runs FastAPI and PostgreSQL/pgvector together. The
+API image contains Alembic migrations and runs `alembic upgrade head` after
+PostgreSQL reports healthy, before Uvicorn starts. The application exposes
+`/health` for process health and `/health/database` for DB-backed readiness.
+Named `postgres_data` and `document_storage` volumes preserve database rows and
+uploaded source PDFs. Both ports bind to localhost. Deployment requires separate
+secret management, network security, and storage decisions.
