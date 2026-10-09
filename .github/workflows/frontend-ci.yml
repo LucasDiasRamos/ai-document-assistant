@@ -1,0 +1,41 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Frontend tests and production build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # The repository does not yet track a frontend lockfile; use npm install
+      # with pinned package.json versions until package-lock.json is committed.
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run frontend regression suite
+        run: npm test
+      - name: Verify production build
+        run: npm run build

@@ -320,3 +320,11 @@ validation, provider timeouts and exception normalization remain mandatory.
 An actual public rollout also requires trusted ingress, centralized throttling,
 secret storage, budget safeguards and durable source-PDF storage. The MVP has
 no login or tenant segregation, so it must not hold private multi-user data.
+
+## Frontend continuous integration
+
+An independent GitHub Actions workflow runs on frontend changes. Node.js 22
+installs pinned package.json dependencies, runs the Vitest/React Testing Library
+suite and builds the Vite/TypeScript production bundle. It requires no paid
+provider access. Until a package-lock is committed, installs use npm install
+instead of npm ci; lockfile generation is recommended as a follow-up.

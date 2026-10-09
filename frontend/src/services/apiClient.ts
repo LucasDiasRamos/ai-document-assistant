@@ -135,7 +135,7 @@ function normalizeValidationIssues(detail: unknown): ApiValidationIssue[] {
     const location =
       "loc" in item && Array.isArray(item.loc)
         ? item.loc.filter(
-            (part): part is string | number =>
+            (part: unknown): part is string | number =>
               typeof part === "string" || typeof part === "number",
           )
         : [];

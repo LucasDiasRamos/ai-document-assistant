@@ -295,6 +295,14 @@ A license has not been selected yet.
 
 ### Frontend tests
 
+The frontend has its own GitHub Actions job in
+`.github/workflows/frontend-ci.yml`. On frontend pull requests and pushes to
+`main`, it installs Node 22 dependencies, runs the Vitest component/workflow
+regression suite, and checks the TypeScript + Vite production build. Both
+checks must succeed before merging the frontend. Until a committed
+`frontend/package-lock.json` is introduced, CI uses `npm install`; locking
+dependencies is recommended for reproducible builds.
+
 Run the full frontend regression suite once with:
 
 ```bash

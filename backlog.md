@@ -1621,7 +1621,7 @@ A potential freelance client can understand the problem and product within secon
 
 ## WEB-17 — Web CI and production build
 
-**Status:** Todo
+**Status:** Done
 
 **Depends on:** WEB-14
 
