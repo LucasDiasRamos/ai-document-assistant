@@ -300,3 +300,11 @@ PostgreSQL reports healthy, before Uvicorn starts. The application exposes
 Named `postgres_data` and `document_storage` volumes preserve database rows and
 uploaded source PDFs. Both ports bind to localhost. Deployment requires separate
 secret management, network security, and storage decisions.
+
+## Backend continuous integration
+
+GitHub Actions checks backend pull requests on Python 3.12 using an ephemeral
+PostgreSQL 16 / pgvector service, runs Alembic, then executes the full pytest
+suite including optional DB integration scenarios. A separate Compose smoke
+job builds and boots the development stack and verifies health and migration
+head. Provider calls are mocked; no paid AI key is available in CI.

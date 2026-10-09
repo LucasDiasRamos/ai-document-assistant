@@ -61,7 +61,7 @@ Planned next:
 
 - End-to-end browser happy-path coverage
 - Web CI and production build validation
-- Production hardening, backend CI, and deployment
+- Production hardening, end-to-end tests, and deployment
 
 ## Target architecture
 
@@ -251,6 +251,38 @@ Open:
 - Swagger: `http://localhost:8000/docs`
 - Health: `http://localhost:8000/health`
 - Database health: `http://localhost:8000/health/database`
+
+## Backend pull-request CI
+
+`.github/workflows/backend-ci.yml` validates backend changes on pull requests
+and on pushes to `main` that affect backend code, Compose, or the workflow.
+
+The `tests` job installs Python 3.12 dependencies, waits for a disposable
+PostgreSQL 16 + pgvector service, applies Alembic migrations, then runs the
+complete `pytest` suite. This includes database-backed retrieval tests that
+otherwise skip when PostgreSQL is unavailable.
+
+The `compose-smoke` job validates Compose syntax, builds the backend image,
+starts PostgreSQL and the API, waits for health checks, then verifies HTTP
+readiness and the expected Alembic revision.
+
+Both jobs use throwaway CI-only database passwords and a dummy model name. They
+do not need any paid AI API credentials, and provider requests in tests should
+remain mocked. No production credentials or sensitive customer documents may
+be added to workflow environment variables.
+
+To reproduce the checks locally:
+
+```bash
+cd backend
+alembic upgrade head
+python -m pytest -q
+cd ..
+docker compose config --quiet
+bash scripts/smoke-compose.sh
+```
+
+Docker Compose tests require a running Docker daemon and Docker Compose v2.
 
 ## Product goal
 
