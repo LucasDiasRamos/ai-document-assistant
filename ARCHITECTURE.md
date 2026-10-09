@@ -308,3 +308,11 @@ PostgreSQL 16 / pgvector service, runs Alembic, then executes the full pytest
 suite including optional DB integration scenarios. A separate Compose smoke
 job builds and boots the development stack and verifies health and migration
 head. Provider calls are mocked; no paid AI key is available in CI.
+
+## Frontend continuous integration
+
+An independent GitHub Actions workflow runs on frontend changes. Node.js 22
+installs pinned package.json dependencies, runs the Vitest/React Testing Library
+suite and builds the Vite/TypeScript production bundle. It requires no paid
+provider access. Until a package-lock is committed, installs use npm install
+instead of npm ci; lockfile generation is recommended as a follow-up.
