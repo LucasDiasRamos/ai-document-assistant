@@ -280,13 +280,16 @@ describe("ApiClient", () => {
     const client = createApiClient("http://localhost:8000/api");
     const request = client.listDocuments(50, { timeoutMs: 25 });
 
-    await vi.advanceTimersByTimeAsync(25);
-
-    await expect(request).rejects.toMatchObject({
+    // Register the rejection assertion before ticking the fake clock so
+    // Node never reports the timeout as an unhandled promise rejection.
+    const rejectedRequest = expect(request).rejects.toMatchObject({
       name: "ApiClientError",
       kind: "timeout",
       message: "The request timed out",
     });
+
+    await vi.advanceTimersByTimeAsync(25);
+    await rejectedRequest;
   });
 
   it("supports caller cancellation", async () => {

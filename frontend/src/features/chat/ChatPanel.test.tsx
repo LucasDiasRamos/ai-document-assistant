@@ -130,7 +130,7 @@ describe("ChatPanel", () => {
     expect(
       screen.getByRole("status", { name: "Assistant is thinking" }),
     ).toBeInTheDocument();
-    expect(input).toBeDisabled();
+    expect(input).toHaveAttribute("readonly");
 
     resolveChat?.({
       answer: "Summary complete.",
@@ -146,7 +146,7 @@ describe("ChatPanel", () => {
     expect(
       await screen.findByRole("article", { name: "Assistant message" }),
     ).toHaveTextContent("Summary complete.");
-    expect(input).toBeEnabled();
+    expect(input).not.toHaveAttribute("readonly");
   });
 
   it("shows a distinct offline error with a retry path", async () => {

@@ -134,7 +134,8 @@ export function ChatPanel({
     appendUserMessage: boolean,
   ) => {
     if (
-      searchableDocumentsState !== "available" ||
+      (searchableDocumentsState === "unavailable" ||
+        searchableDocumentsState === "unknown") ||
       isSending ||
       requestControllerRef.current !== null
     ) {
