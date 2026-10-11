@@ -4,6 +4,8 @@ import type {
   ApiValidationIssue,
   ChatRequest,
   ChatResponse,
+  ConversationCreated,
+  ConversationHistory,
   DocumentListResponse,
   DocumentUploadResponse,
 } from "../types/api";
@@ -67,6 +69,15 @@ export interface ApiClient {
     request: ChatRequest,
     options?: RequestOptions,
   ): Promise<ChatResponse>;
+  // Optional to keep clients injected by existing Web unit tests compatible.
+  createConversation?(options?: RequestOptions): Promise<ConversationCreated>;
+  getConversation?(token: string, options?: RequestOptions): Promise<ConversationHistory>;
+  sendConversationChat?(
+    token: string,
+    request: ChatRequest,
+    options?: RequestOptions,
+  ): Promise<ChatResponse>;
+  deleteConversation?(token: string, options?: RequestOptions): Promise<void>;
 }
 
 type RequestState = {
@@ -355,6 +366,53 @@ export function createApiClient(
           headers: {
             Accept: "application/json",
           },
+        },
+        options,
+      );
+    },
+
+
+    async createConversation(options = {}) {
+      return request<ConversationCreated>(
+        "/conversations",
+        { method: "POST", headers: { Accept: "application/json" } },
+        options,
+      );
+    },
+
+    async getConversation(token, options = {}) {
+      return request<ConversationHistory>(
+        "/conversations/current",
+        {
+          method: "GET",
+          headers: { Accept: "application/json", "X-Conversation-Token": token },
+        },
+        options,
+      );
+    },
+
+    async sendConversationChat(token, chatRequest, options = {}) {
+      return request<ChatResponse>(
+        "/conversations/current/chat",
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            "X-Conversation-Token": token,
+          },
+          body: JSON.stringify(chatRequest),
+        },
+        { ...options, timeoutMs: options.timeoutMs ?? CHAT_REQUEST_TIMEOUT_MS },
+      );
+    },
+
+    async deleteConversation(token, options = {}) {
+      await request<void>(
+        "/conversations/current",
+        {
+          method: "DELETE",
+          headers: { Accept: "application/json", "X-Conversation-Token": token },
         },
         options,
       );

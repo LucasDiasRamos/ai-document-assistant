@@ -50,6 +50,15 @@ test("PDF upload, pgvector retrieval, grounded citation, and deletion", async ({
     page.getByRole("listitem", { name: `${filename}, page 1` }),
   ).toBeVisible();
 
+  // WEB-12: a full browser reload must recover both answer and citation
+  // from PostgreSQL using the browser's saved capability token.
+  await page.reload();
+  await expect(page.getByText(deterministicAnswer)).toBeVisible();
+  await expect(
+    page.getByRole("listitem", { name: `${filename}, page 1` }),
+  ).toBeVisible();
+
+
   // Real browser evidence for portfolio reviews; generated from CI fixtures.
   // A published demo screenshot can be promoted only after manual review.
   await page.screenshot({
