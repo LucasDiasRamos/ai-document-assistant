@@ -78,7 +78,7 @@ jobs:
         run: |
           curl --fail --silent --show-error http://127.0.0.1:8000/health
           curl --fail --silent --show-error http://127.0.0.1:8000/health/database
-          docker compose exec -T postgres psql -U postgres -d ai_document_assistant -tAc "SELECT version_num FROM alembic_version" | grep -Fx '0003_create_document_chunks'
+          docker compose exec -T postgres psql -U postgres -d ai_document_assistant -tAc "SELECT version_num FROM alembic_version" | grep -Fx '0004_create_conversations'
       - name: Stop development services
         if: always()
         run: docker compose down
