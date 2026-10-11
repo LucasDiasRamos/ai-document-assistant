@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit
 
-from pydantic import Field, SecretStr, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -34,6 +34,16 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_managed_postgres_url(cls, value: str) -> str:
+        """Managed hosts expose postgresql://, while this app uses psycopg v3."""
+        if isinstance(value, str):
+            for prefix in ("postgres://", "postgresql://"):
+                if value.startswith(prefix):
+                    return "postgresql+psycopg://" + value[len(prefix):]
+        return value
+
     @model_validator(mode="after")
     def validate_chunk_window(self) -> "Settings":
         if self.chunk_overlap >= self.chunk_size:
@@ -61,6 +71,10 @@ class Settings(BaseSettings):
         if self.app_environment == "production" and not self.cors_allowed_origins:
             raise ValueError(
                 "Production requires explicit CORS_ALLOWED_ORIGINS"
+            )
+        if self.app_environment == "production" and not self.storage_root.is_absolute():
+            raise ValueError(
+                "Production requires absolute STORAGE_ROOT on a persistent volume"
             )
         return self
 

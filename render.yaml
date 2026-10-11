@@ -1,0 +1,56 @@
+# API-26 deployment reference (paid Render resources).
+# Deliberately does not auto-deploy: review security, budgets and credentials first.
+services:
+  - type: web
+    name: ai-document-assistant-api
+    runtime: docker
+    plan: starter
+    region: virginia
+    branch: main
+    autoDeployTrigger: off
+    numInstances: 1
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /health/database
+    disk:
+      name: source-pdfs
+      mountPath: /app/storage
+      sizeGB: 1
+    envVars:
+      - key: APP_ENVIRONMENT
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: STORAGE_ROOT
+        value: /app/storage
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ai-document-assistant-db
+          property: connectionString
+      - key: LLM_PROVIDER
+        value: openai
+      - key: LLM_MODEL
+        value: gpt-4.1-mini
+      - key: EMBEDDING_PROVIDER
+        value: openai
+      - key: EMBEDDING_MODEL
+        value: text-embedding-3-small
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: CHAT_REQUESTS_PER_MINUTE
+        value: "20"
+      - key: UPLOAD_REQUESTS_PER_MINUTE
+        value: "5"
+
+databases:
+  - name: ai-document-assistant-db
+    databaseName: ai_document_assistant
+    user: ai_document_assistant
+    postgresMajorVersion: "16"
+    region: virginia
+    plan: 0.5c-1g
+    diskSizeGB: 1
+    # Database should only be reachable from the Render private network.
+    ipAllowList: []

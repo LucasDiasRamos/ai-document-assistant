@@ -1,13 +1,15 @@
+# Never send local credentials or private documents to the image builder.
 .env
 .env.*
+**/.env
+**/.env.*
+storage/
+*.pdf
 .venv/
 venv/
 __pycache__/
-*.py[cod]
+*.pyc
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-.coverage
-htmlcov/
 tests/
-*.log

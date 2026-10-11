@@ -19,6 +19,7 @@ def test_production_requires_explicit_https_cors_origins() -> None:
     baseline = {
         "database_url": "postgresql+psycopg://local:local@localhost/test",
         "llm_model": "test",
+        "storage_root": "/app/storage",
     }
     with pytest.raises(ValidationError, match="explicit CORS_ALLOWED_ORIGINS"):
         Settings(**baseline, app_environment="production", cors_allowed_origins=[])
