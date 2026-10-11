@@ -1584,7 +1584,7 @@ The scenario above must pass locally and in CI.
 
 ## WEB-16 — Portfolio polish
 
-**Status:** Todo
+**Status:** Done (UI onboarding, polished states, and CI screenshots; public demo publication is separate)
 
 **Depends on:** core functionality
 

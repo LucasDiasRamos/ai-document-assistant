@@ -1250,3 +1250,295 @@ svg {
     border-color: CanvasText;
   }
 }
+
+
+/* Portfolio UI: clear value proposition and a compact three-step workflow. */
+.app {
+  background:
+    radial-gradient(circle at 15% 0%, rgb(223 231 255 / 0.8), transparent 30rem),
+    #eef1f6;
+}
+
+.brand-mark {
+  background: linear-gradient(145deg, #1c2544, #5148cf);
+  box-shadow: 0 6px 18px rgb(79 70 229 / 0.18);
+}
+
+.status-dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgb(79 70 229 / 0.12);
+}
+
+.intro-banner {
+  width: min(100%, 92rem);
+  margin: 0 auto 1rem;
+  padding: 1.05rem 1.45rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  border: 1px solid #dce2f2;
+  border-radius: 1.15rem;
+  background: linear-gradient(112deg, #fff, #f7f8ff);
+  box-shadow: 0 10px 32px rgb(15 23 42 / 0.04);
+}
+
+.intro-copy {
+  min-width: 0;
+}
+
+.intro-eyebrow {
+  margin: 0 0 0.3rem;
+  color: #5148bb;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+}
+
+.intro-copy h2 {
+  margin: 0 0 0.32rem;
+  font-size: clamp(1.1rem, 2vw, 1.6rem);
+  letter-spacing: -0.035em;
+  line-height: 1.25;
+}
+
+.intro-copy > p:last-child {
+  margin: 0;
+  max-width: 39rem;
+  color: var(--text-muted);
+  font-size: 0.83rem;
+  line-height: 1.55;
+}
+
+.intro-steps {
+  margin: 0;
+  padding: 0;
+  flex: 0 1 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  list-style: none;
+}
+
+.intro-steps li {
+  padding: 0.5rem 0.65rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid #e1e5f3;
+  border-radius: 0.7rem;
+  color: #3e4664;
+  background: #fff;
+  font-size: 0.73rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.intro-steps li span {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.65rem;
+}
+
+.workspace {
+  height: calc(100dvh - 14.5rem);
+  min-height: 33rem;
+}
+
+.documents-loading {
+  width: 100%;
+  display: grid;
+  align-content: start;
+  justify-content: stretch;
+  gap: 1.05rem;
+  margin: 0;
+  padding: 0.8rem 0;
+}
+
+.documents-loading-label {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.document-skeleton-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.document-skeleton {
+  padding: 0.82rem;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  border: 1px solid #e5e8f3;
+  border-radius: 0.85rem;
+  background: #fff;
+}
+
+.skeleton-icon,
+.skeleton-line {
+  display: block;
+  border-radius: 0.45rem;
+  background: linear-gradient(90deg, #e8ecf5 20%, #f4f6fb 50%, #e8ecf5 80%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.7s ease-in-out infinite;
+}
+
+.skeleton-icon {
+  flex: 0 0 2.1rem;
+  height: 2.5rem;
+}
+
+.skeleton-copy {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 0.48rem;
+}
+
+.skeleton-line {
+  height: 0.55rem;
+  width: 90%;
+}
+
+.skeleton-line.short {
+  width: 47%;
+}
+
+.empty-step-label,
+.chat-empty-kicker {
+  color: #5148bb;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+}
+
+.chat-empty {
+  gap: 1.05rem;
+}
+
+.chat-empty-copy h2 {
+  margin-top: 0.4rem;
+}
+
+.suggestion-list button {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-size: 0.85rem;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.suggestion-arrow {
+  flex: 0 0 auto;
+  width: 1.65rem;
+  height: 1.65rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.45rem;
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-size: 0.9rem;
+}
+
+.suggestion-list button:hover:not(:disabled) {
+  border-color: #bdbaf3;
+  background: #f7f7ff;
+}
+
+.suggestion-list button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.document-name,
+.message-content,
+.chat-empty-copy,
+.intro-copy {
+  overflow-wrap: anywhere;
+}
+
+@keyframes skeleton-shimmer {
+  to { background-position: -200% 0; }
+}
+
+@media (max-width: 1000px) {
+  .intro-banner {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .intro-steps {
+    justify-content: flex-start;
+  }
+
+  .workspace {
+    height: calc(100dvh - 17rem);
+  }
+}
+
+@media (max-width: 860px) {
+  .intro-banner {
+    margin-bottom: 0.8rem;
+    padding: 1rem 1.2rem;
+  }
+
+  .workspace {
+    height: auto;
+    min-height: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .intro-banner {
+    margin: 0;
+    padding: 0.85rem 1rem;
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .intro-copy h2 {
+    font-size: 1.15rem;
+  }
+
+  .intro-steps {
+    width: 100%;
+    gap: 0.35rem;
+  }
+
+  .intro-steps li {
+    padding: 0.35rem 0.45rem;
+    font-size: 0.64rem;
+  }
+
+  .workspace {
+    min-height: auto;
+  }
+
+  .suggestion-list {
+    display: grid;
+  }
+
+  .suggestion-list button {
+    padding: 0.65rem 0.75rem;
+    font-size: 0.78rem;
+  }
+
+  .chat-empty {
+    gap: 0.8rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-icon,
+  .skeleton-line {
+    animation: none;
+  }
+}

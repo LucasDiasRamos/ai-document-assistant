@@ -41,6 +41,16 @@ function classifyChatFailure(
       };
     }
 
+    if (error.status === 429) {
+      return {
+        kind: "service",
+        title: "Usage limit reached",
+        message: "Too many requests. Wait a moment before asking again.",
+        question,
+        retryable: false,
+      };
+    }
+
     if (error.status === 503) {
       return {
         kind: "service",
@@ -300,7 +310,10 @@ export function ChatPanel({
             </div>
           </div>
         ) : showEmptyState ? (
-          <ChatEmptyState onSuggestionSelect={setDraft} />
+          <ChatEmptyState
+            onSuggestionSelect={setDraft}
+            disabled={composerDisabled}
+          />
         ) : (
           <div
             className="message-list"

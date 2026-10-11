@@ -28,6 +28,22 @@ export function App({
 
       <AppHeader />
 
+      <section className="intro-banner" aria-label="How it works">
+        <div className="intro-copy">
+          <p className="intro-eyebrow">YOUR DOCUMENTS, MADE SEARCHABLE</p>
+          <h2>Ask questions. See the evidence.</h2>
+          <p>
+            Find answers in your PDFs and check the exact document
+            and page behind each response.
+          </p>
+        </div>
+        <ol className="intro-steps">
+          <li><span>01</span> Upload a PDF</li>
+          <li><span>02</span> Ask anything</li>
+          <li><span>03</span> Check the source</li>
+        </ol>
+      </section>
+
       <div className="workspace">
         <DocumentsPanel
           client={documentClient}

@@ -465,8 +465,21 @@ export function DocumentsPanel({
             role="status"
             aria-live="polite"
           >
-            <span className="loading-spinner" aria-hidden="true" />
-            <span>Loading documents…</span>
+            <div className="documents-loading-label">
+              <span className="loading-spinner" aria-hidden="true" />
+              <span>Loading documents…</span>
+            </div>
+            <div className="document-skeleton-list" aria-hidden="true">
+              {[0, 1, 2].map((index) => (
+                <div className="document-skeleton" key={index}>
+                  <span className="skeleton-icon" />
+                  <span className="skeleton-copy">
+                    <span className="skeleton-line" />
+                    <span className="skeleton-line short" />
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         ) : errorMessage ? (
           <div className="documents-error" role="alert">
@@ -491,10 +504,11 @@ export function DocumentsPanel({
               <DocumentIcon />
             </div>
             <div>
+              <span className="empty-step-label">STEP 01 · UPLOAD</span>
               <h3>No documents yet</h3>
               <p>
-                Add a PDF to create a searchable knowledge base for
-                grounded answers.
+                Start with a PDF. We will make it searchable so
+                you can ask questions and verify sources.
               </p>
             </div>
           </div>

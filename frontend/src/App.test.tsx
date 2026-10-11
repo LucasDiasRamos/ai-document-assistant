@@ -36,6 +36,13 @@ describe("App", () => {
     ).toBeInTheDocument();
 
     expect(
+      screen.getByRole("region", { name: "How it works" }),
+    ).toHaveTextContent("Ask questions. See the evidence.");
+
+    expect(screen.getByText("Upload a PDF", { selector: "li" })).toBeInTheDocument();
+    expect(screen.getByText("Check the source")).toBeInTheDocument();
+
+    expect(
       screen.getByRole("heading", { name: "Ask your documents" }),
     ).toBeInTheDocument();
 
