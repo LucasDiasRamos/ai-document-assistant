@@ -52,7 +52,7 @@ def create_app() -> FastAPI:
         allow_origins=settings.cors_allowed_origins,
         allow_credentials=False,
         allow_methods=["GET", "POST", "DELETE"],
-        allow_headers=["Content-Type"],
+        allow_headers=["Content-Type", "X-Conversation-Token"],
     )
     application.add_exception_handler(APIException, api_exception_handler)
     application.add_exception_handler(

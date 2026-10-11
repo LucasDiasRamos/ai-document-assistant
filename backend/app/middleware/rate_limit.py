@@ -35,7 +35,7 @@ class DemoRateLimitMiddleware:
             return
 
         route = scope.get("path")
-        if route == "/api/chat":
+        if route in {"/api/chat", "/api/conversations/current/chat", "/api/conversations"}:
             budget = settings.chat_requests_per_minute
         elif route == "/api/documents":
             budget = settings.upload_requests_per_minute
@@ -45,7 +45,9 @@ class DemoRateLimitMiddleware:
 
         peer = scope.get("client")
         client_host = str(peer[0]) if peer else "unknown"
-        key = (client_host, route)
+        # Group all AI/history creation requests under the same budget.
+        bucket = "chat" if route in {"/api/chat", "/api/conversations/current/chat", "/api/conversations"} else route
+        key = (client_host, bucket)
         now = monotonic()
         window = settings.rate_limit_window_seconds
         retry_after: int | None = None

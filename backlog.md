@@ -781,7 +781,7 @@ Questions outside the uploaded knowledge base do not receive fabricated document
 
 ## API-19 — Conversation history
 
-**Status:** Later / Should-have
+**Status:** Done (token-scoped storage, bounded to 50 Q/A pairs; no history sent to LLM)
 
 **Depends on:** API-17
 
