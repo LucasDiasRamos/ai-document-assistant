@@ -1448,7 +1448,7 @@ Users understand whether the system lacks source information or whether the appl
 
 ## WEB-12 — Conversation history
 
-**Status:** Later / Should-have
+**Status:** Done (restore conversations and citations on refresh; new chat revokes saved history)
 
 **Depends on:** API-19, WEB-09
 

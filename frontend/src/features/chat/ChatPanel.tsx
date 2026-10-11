@@ -11,6 +11,29 @@ import { ChatMessage } from "./ChatMessage";
 import type { SearchableDocumentsState } from "../../types/app";
 import type { ChatMessageModel } from "./chatTypes";
 
+const CONVERSATION_TOKEN_STORAGE_KEY = "ai-document-assistant.conversation-token";
+
+function getSavedConversationToken(): string | null {
+  try {
+    const value = window.localStorage.getItem(CONVERSATION_TOKEN_STORAGE_KEY);
+    return value && /^[0-9a-f]{64}$/.test(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveConversationToken(token: string | null) {
+  try {
+    if (token) {
+      window.localStorage.setItem(CONVERSATION_TOKEN_STORAGE_KEY, token);
+    } else {
+      window.localStorage.removeItem(CONVERSATION_TOKEN_STORAGE_KEY);
+    }
+  } catch {
+    // Storage may be disabled in a private/locked-down browser.
+  }
+}
+
 type ChatRequestFailureKind =
   | "network"
   | "service"
@@ -110,6 +133,12 @@ export function ChatPanel({
   const [requestFailure, setRequestFailure] =
     useState<ChatRequestFailure | null>(null);
   const requestControllerRef = useRef<AbortController | null>(null);
+  const restoreControllerRef = useRef<AbortController | null>(null);
+  const conversationTokenRef = useRef<string | null>(getSavedConversationToken());
+  const [isRestoring, setIsRestoring] = useState(
+    Boolean(client.getConversation && conversationTokenRef.current && initialMessages.length === 0),
+  );
+  const [historyNotice, setHistoryNotice] = useState<string | null>(null);
   const mountedRef = useRef(true);
   const messageSequenceRef = useRef(initialMessages.length);
 
@@ -119,8 +148,46 @@ export function ChatPanel({
     return () => {
       mountedRef.current = false;
       requestControllerRef.current?.abort();
+      restoreControllerRef.current?.abort();
     };
   }, []);
+
+  useEffect(() => {
+    const token = conversationTokenRef.current;
+    if (!client.getConversation || !token || initialMessages.length > 0) {
+      setIsRestoring(false);
+      return;
+    }
+    const controller = new AbortController();
+    restoreControllerRef.current = controller;
+    setIsRestoring(true);
+    client.getConversation(token, { signal: controller.signal })
+      .then((history) => {
+        if (controller.signal.aborted) return;
+        setMessages(history.messages.map((message, index) => ({
+          id: `history-${index}`,
+          role: message.role,
+          content: message.content,
+          sources: message.sources,
+          variant: message.role === "assistant" && message.sources.length === 0
+            ? "insufficient-context" : "standard",
+        })));
+        messageSequenceRef.current = history.messages.length;
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        if (error instanceof ApiClientError && error.status === 404) {
+          conversationTokenRef.current = null;
+          saveConversationToken(null);
+          return;
+        }
+        setHistoryNotice("Saved conversation could not be restored. You can still ask a question.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsRestoring(false);
+      });
+    return () => controller.abort();
+  }, [client, initialMessages.length]);
 
   useEffect(() => {
     if (
@@ -173,10 +240,19 @@ export function ChatPanel({
     setIsSending(true);
 
     try {
-      const response = await client.sendChat(
-        { question },
-        { signal: controller.signal },
-      );
+      let token = conversationTokenRef.current;
+      const supportsHistory = Boolean(client.createConversation && client.sendConversationChat);
+      if (supportsHistory && !token) {
+        const created = await client.createConversation!({ signal: controller.signal });
+        if (!mountedRef.current || requestControllerRef.current !== controller) return;
+        token = created.token;
+        conversationTokenRef.current = token;
+        saveConversationToken(token);
+      }
+
+      const response = supportsHistory && token
+        ? await client.sendConversationChat!(token, { question }, { signal: controller.signal })
+        : await client.sendChat({ question }, { signal: controller.signal });
 
       if (
         !mountedRef.current ||
@@ -240,6 +316,20 @@ export function ChatPanel({
   };
 
   const handleNewChat = () => {
+    restoreControllerRef.current?.abort();
+    setIsRestoring(false);
+    setHistoryNotice(null);
+    const previousToken = conversationTokenRef.current;
+    conversationTokenRef.current = null;
+    saveConversationToken(null);
+    if (previousToken && client.deleteConversation) {
+      void client.deleteConversation(previousToken).catch((error: unknown) => {
+        if (error instanceof ApiClientError && error.status === 404) return;
+        if (mountedRef.current) {
+          setHistoryNotice("Could not delete the previous saved conversation from the server.");
+        }
+      });
+    }
     requestControllerRef.current?.abort();
     requestControllerRef.current = null;
     messageSequenceRef.current = 0;
@@ -254,7 +344,7 @@ export function ChatPanel({
   const documentsUnknown =
     searchableDocumentsState === "unknown";
   const composerDisabled =
-    documentsUnavailable || documentsUnknown;
+    documentsUnavailable || documentsUnknown || isRestoring;
 
   const composerPlaceholder = documentsUnavailable
     ? "Upload a ready PDF before asking a question…"
@@ -282,6 +372,10 @@ export function ChatPanel({
           New chat
         </button>
       </header>
+
+      {historyNotice ? (
+        <p className="chat-history-notice" role="status">{historyNotice}</p>
+      ) : null}
 
       <section
         className={

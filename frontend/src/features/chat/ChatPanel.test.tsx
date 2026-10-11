@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   ApiClientError,
@@ -35,6 +35,10 @@ function submitQuestion(question: string) {
 }
 
 describe("ChatPanel", () => {
+  afterEach(() => {
+    window.localStorage.removeItem("ai-document-assistant.conversation-token");
+  });
+
   it("renders a grounded answer and sources", async () => {
     const sendChat = vi.fn().mockResolvedValue({
       answer: "The warranty period is 24 months.",
@@ -369,6 +373,94 @@ describe("ChatPanel", () => {
       .not.toBeInTheDocument();
   });
 
+
+  it("stores a new conversation token and writes chat via the scoped endpoint", async () => {
+    const token = "a".repeat(64);
+    const sendConversationChat = vi.fn().mockResolvedValue({
+      answer: "The contract runs for 12 months.",
+      sources: [{ document_id: 3, document: "agreement.pdf", page: 2 }],
+    });
+    const createConversation = vi.fn().mockResolvedValue({
+      token,
+      expires_at: "2026-10-18T10:00:00Z",
+    });
+    const client: ApiClient = {
+      ...createClient(),
+      createConversation,
+      getConversation: vi.fn().mockResolvedValue({ messages: [], expires_at: "" }),
+      sendConversationChat,
+      deleteConversation: vi.fn().mockResolvedValue(undefined),
+    };
+    render(<ChatPanel client={client} />);
+    submitQuestion("What is the contract duration?");
+    expect(await screen.findByText("The contract runs for 12 months.")).toBeInTheDocument();
+    expect(createConversation).toHaveBeenCalledTimes(1);
+    expect(sendConversationChat).toHaveBeenCalledWith(
+      token,
+      { question: "What is the contract duration?" },
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+    expect(window.localStorage.getItem("ai-document-assistant.conversation-token")).toBe(token);
+  });
+
+  it("restores saved citations in their original order after reload", async () => {
+    const token = "b".repeat(64);
+    window.localStorage.setItem("ai-document-assistant.conversation-token", token);
+    const client: ApiClient = {
+      ...createClient(),
+      getConversation: vi.fn().mockResolvedValue({
+        expires_at: "2026-10-18T10:00:00Z",
+        messages: [
+          { role: "user", content: "Where?", sources: [] },
+          {
+            role: "assistant", content: "On page four.",
+            sources: [{ document_id: 4, document: "manual.pdf", page: 4 }],
+          },
+        ],
+      }),
+    };
+    render(<ChatPanel client={client} />);
+    expect(await screen.findByText("On page four.")).toBeInTheDocument();
+    expect(screen.getByRole("article", { name: "User message" }))
+      .toHaveTextContent("Where?");
+    expect(screen.getByRole("listitem", { name: "manual.pdf, page 4" }))
+      .toBeInTheDocument();
+  });
+
+  it("new chat clears local token and deletes its server-side history", async () => {
+    const token = "c".repeat(64);
+    window.localStorage.setItem("ai-document-assistant.conversation-token", token);
+    const deleteConversation = vi.fn().mockResolvedValue(undefined);
+    const client: ApiClient = {
+      ...createClient(),
+      getConversation: vi.fn().mockResolvedValue({
+        expires_at: "",
+        messages: [{ role: "user", content: "Old question", sources: [] }],
+      }),
+      deleteConversation,
+    };
+    render(<ChatPanel client={client} />);
+    expect(await screen.findByText("Old question")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "New chat" }));
+    expect(window.localStorage.getItem("ai-document-assistant.conversation-token")).toBeNull();
+    expect(deleteConversation).toHaveBeenCalledWith(token);
+    expect(screen.queryByText("Old question")).not.toBeInTheDocument();
+  });
+
+  it("invalid or expired saved tokens are cleared on 404", async () => {
+    const token = "d".repeat(64);
+    window.localStorage.setItem("ai-document-assistant.conversation-token", token);
+    const client: ApiClient = {
+      ...createClient(),
+      getConversation: vi.fn().mockRejectedValue(
+        new ApiClientError("Conversation not found or expired", { kind: "http", status: 404 }),
+      ),
+    };
+    render(<ChatPanel client={client} />);
+    await waitFor(() => expect(
+      window.localStorage.getItem("ai-document-assistant.conversation-token"),
+    ).toBeNull());
+  });
   it("supports multiple sequential questions", async () => {
     const sendChat = vi
       .fn()
