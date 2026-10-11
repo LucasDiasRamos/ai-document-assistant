@@ -1017,7 +1017,7 @@ The demo is reasonably safe to expose publicly without trivial file/path or unli
 
 ## API-26 — Backend deployment
 
-**Status:** Todo
+**Status:** In progress (Render Blueprint, persistent storage and deployment checks prepared; HTTPS rollout and live smoke verification pending)
 
 **Depends on:** API-23, API-24, API-25
 
